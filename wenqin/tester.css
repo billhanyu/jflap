@@ -50,7 +50,8 @@ td {
 	position: absolute;
 	background-color: white;
 	border: 1px solid black;
-	padding: 2px;
+	padding-top: 5px;
+	padding-bottom: 5px;
 	display: block;
 	margin: 0l
 	list-style-type: none;
@@ -67,4 +68,9 @@ td {
 #rmenu .editNode {
 	padding-left: 10px;
 	padding-right: 10px;
+	cursor: pointer;
+	cursor: hand;
+}
+#rmenu .editNode:hover {
+	background-color: #cdc9c9;
 }

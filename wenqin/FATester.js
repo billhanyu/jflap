@@ -115,7 +115,7 @@
 			// If in "Add Nodes" mode, save the graph and add a node.
 			saveFAState();
 			executeAddNode(g, e.pageY, e.pageX);
-			$('.jsavnode').contextmenu(showMenu);
+			$('.jsavnode').off('contextmenu').contextmenu(showMenu);
 			$(".jsavgraph").removeClass("addNodes");
 		} 
 		else if ($('.jsavgraph').hasClass('moveNodes') && selected != null) {
@@ -179,21 +179,33 @@
 	};
 
 	var showMenu = function(e) {
+		var selected = $(this);
+		var node = g.nodes().find(function(candidate) {
+			return selected.attr('data-value') == candidate.value();
+		});
+		console.log(node.value());
 		e.preventDefault();
-		$("#rmenu").offset({top: $(this).offset().top + e.offsetY, left: $(this).offset().left + e.offsetX});
-		if ($(this).hasClass("initial")) {
-			$("#makeInitial").text("&#x2713; Toggle Initial");
-		}
-		if ($(this).hasClass("final")) {
-			$("#makeFinal").text("&#x2713; Toggle Final");
-		}
-		$("#makeInitial").click(function() {
-			toggleInitial(this);
-		});
-		$("#makeFinal").click(function() {
-			toggleFinal(this);
-		});
+		$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
+		//$("#rmenu").offset({top: selected.offset().top + e.offsetY, left: selected.offset().left + e.offsetX});
 		$("#rmenu").show();
+		if (node.equals(g.initial)) {
+			$("#makeInitial").html("&#x2713; Toggle Initial");
+		}
+		else {
+			$("#makeInitial").html("ToggleInitial");
+		}
+		if (node.hasClass("final")) {
+			$("#makeFinal").html("&#x2713; Toggle Final");
+		}
+		else {
+			$("#makeFinal").html("Toggle Final");
+		}
+		$("#makeInitial").off('click').click(function() {
+			toggleInitial(node);
+		});
+		$("#makeFinal").off('click').click(function() {
+			toggleFinal(node);
+		});
 	};
 
 	// Sets click handler for when the user clicks a JSAV edge.
@@ -881,11 +893,15 @@
 	}
 
 	var toggleInitial = function(node) {
-		if (node.hasClass("initial")) {
-			node.removeInitial();
+		if (node.equals(g.initial)) {
+			g.removeInitial(node);
 		}
 		else {
-			node.makeInitial();
+			if (g.initial) {
+				alert("There can only be one intial state!");
+			} else {
+				g.makeInitial(node);
+			}
 		}
 		$("#rmenu").hide();
 	};
