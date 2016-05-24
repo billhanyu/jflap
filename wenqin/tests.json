@@ -1,0 +1,50 @@
+[{
+	"expression": "aa* + aba*b*",
+	"testCases": [{
+		"aab": false
+	}, {
+		"abaab": true
+	}, {
+		"baab": false
+	}, {
+		"aaaa": true
+	}]
+},
+{
+	"expression": "ab(a+ab)*(a+aa)",
+	"testCases": [{
+		"ababaa": true
+	}, {
+		"abaaaa": true
+	}, {
+		"aba": true
+	}, {
+		"ababb": false
+	}, {
+		"baaa": false
+	}]
+},
+{
+	"expression": "(abab)* + (aaa* + b)*",
+	"testCases": [{
+		"aa": false
+	}, {
+		"abababab": true
+	}, {
+		"ab": false
+	}, {
+		"bbbbb": true
+	}, {
+		"ababa": false
+	}]
+},
+{
+	"expression": "(a+b)*(b+a)",
+	"testCases": [{
+		"bbbb": true
+	}, {
+		"c": false
+	}, {
+		"abab": false
+	}]
+}]

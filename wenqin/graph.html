@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>test JSAV</title>
+		<link rel="stylesheet" href="../css/JSAV.css" type="text/css"/>
+		<link rel="stylesheet" href="../resources/FA.css" type="text/css"/>
+		<link rel="stylesheet" href="../css/styles.css" type="text/css"/>
+		<style>
+			#av {
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="av">
+			<h1>JSAV graph test</h1>
+			<p class="jsavoutput jsavline"></p>
+			<div class="jsavcontrols"></div><span class="jsavcounter"></span>
+		</div>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+		<script src="../lib/jquery.transit.js"></script>
+    <script src="../lib/raphael.js"></script>
+    <script src="../build/JSAV.js"></script>
+		<script src="../resources/FA.js"></script>
+		<script src="../resources/serializableGraph.js"></script>
+		<script>
+			var jsav = new JSAV("av");
+
+			var initGraph = function(opts) {
+				var g = jsav.ds.fa($.extend({width: 500, height: 350, directed: true}, opts));
+				var a = g.addNode("A"),
+						b = g.addNode("B"),
+						c = g.addNode("C"),
+						d = g.addNode("D"),
+						e = g.addNode("E");
+				g.makeInitial(a);
+				c.addClass("final");
+				d.addClass("final");
+				g.addEdge(a, b, {weight: "a"});
+				g.addEdge(b, c, {weight: "b"});
+				g.addEdge(c, d, {weight: "c"});
+				g.addEdge(d, e, {weight: "d"});
+				g.addEdge(e, a, {weight: "e"});
+				return g;
+			};
+
+			var g = initGraph({layout: "automatic"});
+			g.layout();
+
+			var nodeClickHandler = function(e) {
+				this.toggleClass("jsavhighlight");
+			};
+
+			g.click(nodeClickHandler);
+			jsav.umsg("Click to highlight, click again to unhighlight.");
+			$(".jsavcounter").hide();
+		</script>
+	</body>
+</html>
