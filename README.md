@@ -3,6 +3,8 @@
 
 [Project Blog](https://users.cs.duke.edu/~hy103/jflap/)
 
+[Project Location](http://billyu.me/jflap)
+
 ##Achieved Goals
 * FATester
   1. integrate finite state machine creating exercises given regular expressions
