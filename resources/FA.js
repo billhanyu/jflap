@@ -2,6 +2,7 @@
 Finite Automaton module.
 An extension to the JFLAP library.
 */
+var lambda = String.fromCharCode(955);
 (function ($) {
   "use strict";
   if (typeof JSAV === "undefined") {
@@ -141,7 +142,7 @@ An extension to the JFLAP library.
   */
   faproto.addEdge = function(fromNode, toNode, options) {
     // assumes a weight is always given
-    if (options.weight === "") {
+    if (options.weight === "" || options.weight == lambda) {
       options.weight = this.emptystring;
     }
     if (this.hasEdge(fromNode, toNode)) {     // if an edge already exists update it
@@ -1070,17 +1071,16 @@ Only used in NFA to DFA conversion.
 There's a different lambda closure function used for nondeterministic traversal in certain tests.
 */
 var lambdaClosure = function(input, graph) {
-  var l = "\&lambda;",
-      arr = [];
+  var arr = [];
   for (var i = 0; i < input.length; i++) {
     arr.push(input[i]);
-    var next = graph.transitionFunction(graph.getNodeWithValue(input[i]), l);
+    var next = graph.transitionFunction(graph.getNodeWithValue(input[i]), lambda);
     arr = _.union(arr, next);
   }
   var temp = arr.slice(0);
   while (temp.length > 0) {
     var val = temp.pop(),
-        next = graph.transitionFunction(graph.getNodeWithValue(val), l);
+        next = graph.transitionFunction(graph.getNodeWithValue(val), lambda);
     next = _.difference(next, arr);
     arr = _.union(arr, next);
     temp = _.union(temp, next);
