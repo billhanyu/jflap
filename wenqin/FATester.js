@@ -178,36 +178,6 @@
 		}
 	};
 
-	var showMenu = function(e) {
-		var selected = $(this);
-		//find faState object with jQuery selected object
-		var node = g.getNodeWithValue(selected.attr('data-value'));
-		e.preventDefault();
-		//make menu appear where mouse clicks
-		$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
-		//$("#rmenu").offset({top: selected.offset().top + e.offsetY, left: selected.offset().left + e.offsetX});
-		$("#rmenu").show();
-		if (node.equals(g.initial)) {
-			$("#makeInitial").html("&#x2713; Toggle Initial");
-		}
-		else {
-			$("#makeInitial").html("ToggleInitial");
-		}
-		if (node.hasClass("final")) {
-			$("#makeFinal").html("&#x2713; Toggle Final");
-		}
-		else {
-			$("#makeFinal").html("Toggle Final");
-		}
-		//off and on to avoid binding event more than once
-		$("#makeInitial").off('click').click(function() {
-			toggleInitial(node);
-		});
-		$("#makeFinal").off('click').click(function() {
-			toggleFinal(node);
-		});
-	};
-
 	// Sets click handler for when the user clicks a JSAV edge.
 	var edgeClickHandler = function(e) {
 		if ($('.jsavgraph').hasClass('deleteNodes')) {
@@ -863,34 +833,12 @@
 		$("#testResults").hide();
 		$("#percentage").hide();
 	};
-	
-	var hideRMenu = function() {
-		$("#rmenu").hide();
-	};
 
-	var toggleInitial = function(node) {
-		if (node.equals(g.initial)) {
-			g.removeInitial(node);
-		}
-		else {
-			if (g.initial) {
-				alert("There can only be one intial state!");
-			} else {
-				g.makeInitial(node);
-			}
-		}
-		$("#rmenu").hide();
-	};
-
-	var toggleFinal = function(node) {
-		if (node.hasClass("final")) {
-			node.removeClass("final");
-		}
-		else {
-			node.addClass("final");
-		}
-		$("#rmenu").hide();
-	};
+	//displayRightClickMenu is in Commands.js
+	var showMenu = function(e) {
+		var selected = $(this);
+		displayRightClickMenu(g, selected, e);
+	}
 	
 	$("#rmenu").load("./rmenu.html");
 	$("#rmenu").hide();
