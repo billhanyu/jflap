@@ -180,11 +180,10 @@
 
 	var showMenu = function(e) {
 		var selected = $(this);
-		var node = g.nodes().find(function(candidate) {
-			return selected.attr('data-value') == candidate.value();
-		});
-		console.log(node.value());
+		//find faState object with jQuery selected object
+		var node = g.getNodeWithValue(selected.attr('data-value'));
 		e.preventDefault();
+		//make menu appear where mouse clicks
 		$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
 		//$("#rmenu").offset({top: selected.offset().top + e.offsetY, left: selected.offset().left + e.offsetX});
 		$("#rmenu").show();
@@ -200,6 +199,7 @@
 		else {
 			$("#makeFinal").html("Toggle Final");
 		}
+		//off and on to avoid binding event more than once
 		$("#makeInitial").off('click').click(function() {
 			toggleInitial(node);
 		});
