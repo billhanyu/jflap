@@ -12,23 +12,6 @@
 		emptystring = lambda, // Instance variable to store which empty string notation is being used.
 		willRejectFunction = willReject; // Instance variable to indicate which traversal function to run (shorthand or no).
 
-	var tests, currentExercise = 0, testCases;
-	$.ajax({
-  	url: "./tests.json",
-  	dataType: 'json',
-  	async: false,
-  	success: function(data) {
-			tests = data;
-  	}
-	});
-	for (i = 0; i < tests.length; i++) {
-		$("#exerciseLinks").append("<a href='#' id='" + i + "' class='links'>" + (i+1) + "</a>");
-	}
-
-	$("#testResults").hide();
-
-	
-
 	// Initializes a graph with automatic layout. Mainly called by Undo/Redo.
 	var initialize = function(graph) {
 		g = graph;
@@ -79,6 +62,12 @@
 	   		edge.layout();
 	   	}
 	   	// Set whether or not shorthand mode is enabled.
+	   	if (gg.shorthand) {
+	   		setShorthand(true);
+	    }
+	    else {
+	    	setShorthand(false);
+	    }
 	    // Clear anything in local storage as we do not need it anymore.
 	    // (Local storage is used to transfer graph information between different windows. It is used by conversionExercise.html and minimizationTest.html.)
 	    localStorage['toConvert'] = false;
@@ -116,7 +105,7 @@
 			saveFAState();
 			executeAddNode(g, e.pageY, e.pageX);
 			$('.jsavnode').off('contextmenu').contextmenu(showMenu);
-			$(".jsavgraph").removeClass("addNodes");
+			$('.jsavgraph').removeClass("addNodes");
 		} 
 		else if ($('.jsavgraph').hasClass('moveNodes') && selected != null) {
 			// If in "Move Nodes" mode, and a node has already been selected, save the graph and move the node.
@@ -178,6 +167,17 @@
 		}
 	};
 
+	// Sets click handler for when the user clicks a JSAV edge.
+	var edgeClickHandler = function(e) {
+		if ($('.jsavgraph').hasClass('deleteNodes')) {
+			// If in "Delete Nodes" mode (which also serves to delete edges), save the graph and delete the edge.
+			saveFAState();
+			executeDeleteEdge(g, this);
+			updateAlphabet();
+			checkAllEdges();
+		}
+	};
+
 	var showMenu = function(e) {
 		var selected = $(this);
 		//find faState object with jQuery selected object
@@ -206,17 +206,6 @@
 		$("#makeFinal").off('click').click(function() {
 			toggleFinal(node);
 		});
-	};
-
-	// Sets click handler for when the user clicks a JSAV edge.
-	var edgeClickHandler = function(e) {
-		if ($('.jsavgraph').hasClass('deleteNodes')) {
-			// If in "Delete Nodes" mode (which also serves to delete edges), save the graph and delete the edge.
-			saveFAState();
-			executeDeleteEdge(g, this);
-			updateAlphabet();
-			checkAllEdges();
-		}
 	};
 
 	// Sets click handler for when the user clicks a JSAV edge label.
@@ -253,14 +242,28 @@
 		updateAlphabet();
 		checkAllEdges();
 		// Check to see if shorthand notation is disabled, and whether the transitions on this edge are therefore allowed (i.e. only one character long).
+		if (!g.shorthand) {
+			var weights = edge_label.split("<br>");
+			for (var i = 0; i < weights.length; i++) {
+				if (weights[i].length > 1) {
+					window.alert("Shorthand notation is disabled for this automaton.\n\nTo traverse, please enter only single character transition labels.");
+					break;
+				}
+			}	
+		}
 	};
 
 	// Function to check if a single edge contains any transitions of more than one input symbol in sequence.
 	// Generates warnings only when shorthand mode is disabled.
 	function checkEdge(edge) {
+		if (g.shorthand) {
+			return;
+		}
 		var weights = edge.weight().split("<br>");
 		for (var i = 0; i < weights.length; i++) {
 			if (weights[i].length > 1) {
+				window.alert("Shorthand notation is disabled for this automaton.\n\nTo traverse, please enter only single character transition labels.");
+				edge.addClass('testingShorthand');
 				document.getElementById("begin").disabled = true;
 				break;
 			}
@@ -517,9 +520,101 @@
 		jsav.umsg('Click on an input to trace its traversal.');
 	};
 
+	// Presents the custom prompt box for traversal input strings.
+	// Check the graph for the initial state. If there isn't one, an error is returned.
+	// Triggered by clicking the "Traverse" button.
+	var displayTraversals = function () {
+		if (g.initial == null) {
+			window.alert("FA traversal requires an initial state.");
+			return;
+		}
+		var Prompt = new TraversePrompt(traverseInputs);
+		Prompt.render();
+	};
+
+	// Traces every input string on the graph and populates a JSAV array showing them.
+	// They are highlighted either green or red depending on whether they were accepted or rejected.
+	// Called by the traversal custom prompt box upon clicking "Traverse".
+	var traverseInputs = function (inputs) {
+		var nodes = g.nodes();
+		for (var next = nodes.next(); next; next = nodes.next()) {
+			// Remove "current", or else it will mess with the traversal algorithms.
+			// (Traversal algorithms use "current" to mark states as visited.)
+			next.removeClass('current');
+		}
+		var travArray = [];
+		readyTraversal();
+		for (var i = 0; i < inputs.length; i++) {
+			// Create an array of the input strings.
+			if (inputs[i]) {
+				travArray.push(inputs[i]);
+			}
+			else {
+				travArray.push(emptystring);
+			}
+		}
+		// Use this array to populate the JSAV array.
+		jsavArray = jsav.ds.array(travArray, {element: $('.arrayPlace')});
+		for (var j = 0; j < inputs.length; j++) {
+			if (willRejectFunction(g, inputs[j])) {
+				// If rejected, color red.
+				jsavArray.css(j, {"background-color": "red"});
+			}
+			else {
+				// If accepted, color green.
+				jsavArray.css(j, {"background-color": "green"});
+			}
+		}
+		// Remove any click handlers already on the JSAV array.
+		// Add the click handler and show the JSAV array.
+		$('.arrayPlace').off("click");
+		jsavArray.click(arrayClickHandler);
+		jsavArray.show();
+	};
+
 	// Click handler for the JSAV array.
 	function arrayClickHandler(index) {
 		play(this.value(index));
+	};
+
+	// Function to open the graph in another window and run the input string on it.
+	// Triggered by clicking on an input string in the JSAV array.
+	var play = function (inputString) {
+		localStorage['graph'] = serialize(g);
+		localStorage['traversal'] = inputString;
+		window.open("./FATraversal.html");
+	};
+
+	// Save the graph and switch to shorthand mode, in which sequences of input symbols on an edge are acceptable.
+	// Triggered by clicking the "Enable/Disable Shorthand" button.
+	function switchShorthand() {
+		removeModeClasses();
+		removeND();
+		saveFAState();
+		setShorthand(!g.shorthand);
+	};
+
+	// Function to set whether or not shorthand mode is enabled.
+	// If it is disabled, every violating egde (edges with multiple symbol transitions) are highlighted orange.
+	// If any edges are highlighted orange, the "Traverse" button is disabled.
+	function setShorthand (setBoolean) {
+		g.setShorthand(setBoolean);
+		if (g.shorthand) {
+			document.getElementById("begin").disabled = false;
+			document.getElementById("shorthandButton").innerHTML = "Disable Shorthand";
+			// The traversal function to run needs to be changed.
+			willRejectFunction = willRejectShorthand;
+			var edges = g.edges();
+			for (var next = edges.next(); next; next = edges.next()) {
+				next.removeClass('testingShorthand');
+			}
+		}
+		else {
+			document.getElementById("shorthandButton").innerHTML = "Enable Shorthand";
+			// The traversal function to run needs to be changed.
+			willRejectFunction = willReject;
+			checkAllEdges();
+		}
 	};
 
 	// Function to reset the size of the undo stack and the redo stack.
@@ -588,11 +683,10 @@
 			data = localStorage['minimized'];
 		}
 		else {
-			data = '{"nodes":[],"edges":[]}';
+			data = '{"nodes":[{"left":753.90625,"top":171.109375,"i":true,"f":false},{"left":505.890625,"top":342,"i":false,"f":false},{"left":1042,"top":199.40625,"i":false,"f":false},{"left":287.90625,"top":123.625,"i":false,"f":false},{"left":535.921875,"top":0,"i":false,"f":false},{"left":0,"top":89.234375,"i":false,"f":true}],"edges":[{"start":0,"end":1,"weight":"a"},{"start":0,"end":2,"weight":"b"},{"start":1,"end":3,"weight":"a"},{"start":3,"end":4,"weight":"b"},{"start":3,"end":5,"weight":"a"},{"start":4,"end":0,"weight":"a"},{"start":5,"end":3,"weight":"g"}]}';
 		}
 		initialize(data);
 		resetUndoButtons();
-		updateExercise(currentExercise);
 	};
 
 	// Function to serialize the current graph to XML format.
@@ -818,52 +912,8 @@
 		localStorage['minimizeDFA'] = true;
 		localStorage['toMinimize'] = serialize(g);
 		window.open("../../shkim/minimizationTest.html");
-	};
+	}
 
-	var testWithExpression = function() {
-		if (g.initial == null) {
-			window.alert("FA traversal requires an initial state.");
-			return;
-		}
-		$("#testResults").empty();
-		$("#testResults").append("<tr><td>Test Case</td><td>Standard Answer</td><td>Result</td></tr>");
-		var count = 0;
-		for (i = 0; i < testCases.length; i++) {
-			var testCase = testCases[i];
-			var input = Object.keys(testCase)[0];
-			console.log(input);
-			var inputResult = willReject(g, input);
-			console.log(inputResult);
-			console.log(testCase[input]);
-			if (inputResult !== testCase[input]) {
-				$("#testResults").append("<tr><td>" + input + "</td><td>" + (testCase[input] ? "Accept" : "Reject") + "</td><td class='correct'>Correct</td></tr>");
-				count++;
-			}
-			else {
-				$("#testResults").append("<tr><td>" + input + "</td><td>" + (testCase[input] ? "Accept" : "Reject") + "</td><td class='wrong'>Wrong</td></tr>");
-			}
-		}
-		$("#percentage").text("Correct cases: " + count + " / " + testCases.length);
-		$("#percentage").show();
-		$("#testResults").show();
-		window.scrollTo(0,document.body.scrollHeight);
-	};
-
-	var toExercise = function() {
-		currentExercise = this.getAttribute('id');
-		updateExercise(currentExercise);
-	};
-	
-	var updateExercise = function(id) {
-		var exercise = tests[id];
-		$("#expression").text(exercise["expression"]);
-		$(".links").removeClass("currentExercise");
-		$("#" + currentExercise).addClass("currentExercise");
-		testCases = exercise["testCases"];
-		$("#testResults").hide();
-		$("#percentage").hide();
-	};
-	
 	var hideRMenu = function() {
 		$("#rmenu").hide();
 	};
@@ -898,7 +948,7 @@
 	onLoadHandler();
 
 	// Button click handlers.
-	$('#begin').click(testWithExpression);
+	$('#begin').click(displayTraversals);
 	$('#saveButton').click(saveXML);
 	$('#loadFile').change(loadXML);
 	$('#undoButton').click(undo);
@@ -909,6 +959,12 @@
 	$('#editButton').click(editNodes);
 	$('#deleteButton').click(deleteNodes);
 	$('#layoutButton').click(layoutGraph);
-	$('.links').click(toExercise);
+	$('#ndButton').click(testND);
+	$('#lambdaButton').click(testLambda);
+	$('#epsilonButton').click(switchEmptyString);
+	$('#shorthandButton').click(switchShorthand);
+	$('#toDFAButton').click(convertToDFA);
+	$('#minimizeButton').click(minimizeDFA);
+	$('#toGrammarButton').click(convertToGrammar);
 	$(document).click(hideRMenu);
 }(jQuery));
