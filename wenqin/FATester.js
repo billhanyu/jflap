@@ -27,8 +27,6 @@
 
 	$("#testResults").hide();
 
-	
-
 	// Initializes a graph with automatic layout. Mainly called by Undo/Redo.
 	var initialize = function(graph) {
 		g = graph;

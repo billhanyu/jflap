@@ -659,20 +659,20 @@
 		resetUndoButtons();
 	};
 
-	// Function to serialize the current graph to XML format.
-	var serializeGraphToXML = function (graph) {
-		var text = '<?xml version="1.0" encoding="UTF-8"?>';
+	// function to serialize the current graph to xml format.
+	var serializegraphtoxml = function (graph) {
+		var text = '<?xml version="1.0" encoding="utf-8"?>';
 	    text = text + "<structure>";
 	    text = text + "<type>fa</type>"
 	    text = text + "<automaton>"
 	    var nodes = graph.nodes();
-	    // Iterate over the nodes and add them all to the serialization.
+	    // iterate over the nodes and add them all to the serialization.
 	    for (var next = nodes.next(); next; next = nodes.next()) {
 	    	var left = next.position().left;
 		    var top = next.position().top;
-		    var i = next.hasClass("start");
-		    var f = next.hasClass("final");
-		    var label = next.stateLabel();
+		    var i = next.hasclass("start");
+		    var f = next.hasclass("final");
+		    var label = next.statelabel();
 		    text = text + '<state id="' + next.value().substring(1) + '" name="' + next.value() + '">';
 		    text = text + '<x>' + left + '</x>';
 		    text = text + '<y>' + top + '</y>';
@@ -688,15 +688,15 @@
 	    	text = text + '</state>';
 	    }
 	    var edges = graph.edges();
-	    // Now iterate over the edges and do the same with them.
+	    // now iterate over the edges and do the same with them.
 	    for (var next = edges.next(); next; next = edges.next()) {
-	    	var fromNode = next.start().value().substring(1);
-	    	var toNode = next.end().value().substring(1);
+	    	var fromnode = next.start().value().substring(1);
+	    	var tonode = next.end().value().substring(1);
 	    	var w = next.weight().split('<br>');
 	    	for (var i = 0; i < w.length; i++) {
 	    		text = text + '<transition>';
-	    		text = text + '<from>' + fromNode + '</from>';
-	    		text = text + '<to>' + toNode + '</to>';
+	    		text = text + '<from>' + fromnode + '</from>';
+	    		text = text + '<to>' + tonode + '</to>';
 	    		if (w[i] === emptystring) {
 	    			text = text + '<read/>';
 	    		}
@@ -707,7 +707,7 @@
 	    	}
 	    }
 	    text = text + "</automaton></structure>"
-	    // This XML format mimics that used by JFLAP 7, and is thus compatible with the software.
+	    // this xml format mimics that used by jflap 7, and is thus compatible with the software.
 	    return text;
 	};
 

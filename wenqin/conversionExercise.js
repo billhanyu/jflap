@@ -11,6 +11,16 @@
 	var lambda = String.fromCharCode(955),
 		epsilon = String.fromCharCode(949);
 
+	var automata;
+	$.ajax({
+  	url: "./conversions.xml",
+  	dataType: 'xml',
+  	async: false,
+  	success: function(data) {
+			console.log(data);
+  	}
+	});
+
 	// initializes the reference/original NFA
 	function initGraph () {
 		if (localStorage['convertNFA'] === "true") {
@@ -88,26 +98,10 @@
 		g.makeInitial(initialNode);
 
 		$("#editable").off('click').click(graphClickHandlers);
-		g.off('click').click(nodeClickHandlers);
+		g.click(nodeClickHandlers);
 		return g;
 	};
-	// shows the answer and checks the user's DFA (buggy)
-	function modelAnswer (modeljsav) {
-		// bug: all of the edges seem to be shifted a screen to the right
-		var graph = convertToDFA(modeljsav, g1, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas')});
-		graph.layout();
-		// temp (should check FA equivalence)
-		if (graph.equals(g)) {
-			jsav.umsg("You got it!");
-			alert("Congratulations!");
-			localStorage['toConvert'] = true;
-			localStorage['converted'] = serialize(g);
-			window.open('../martin tamayo/Finite Accepter/FAEditor.html');
-		}
-		modeljsav.displayInit();
-		modeljsav.recorded();
-		return graph;
-	};
+
 	// handler for the graph window
 	var graphClickHandlers = function (e) {
 		// place selected node
@@ -142,7 +136,7 @@
 				}
 				input2 = inputArr.sort().join();
 				if (input2 !== expanded) {
-					alert("That's incorrect");
+					alert("State label is incorrect.");
 					$('.editButton').show();
 					$('.jsavgraph').removeClass("working");
 					selectedNode.unhighlight();
@@ -226,6 +220,9 @@
 					var newEdge = g.addEdge(selectedNode, this, {weight: input});
 					if (newEdge) { newEdge.layout();}
 				}
+				else {
+					alert("State label is incorrect.");
+				}
 				$('.editButton').show();
 				$('.jsavgraph').removeClass("working");
 				selectedNode.unhighlight();
@@ -236,7 +233,7 @@
 		}
 	};
 	g1 = initGraph();
-	var exercise = jsav.exercise(modelAnswer, initialize, {compare: {class: "final"}});
+	var exercise = jsav.exercise(modelAnswer, initialize, {compare: {class: "jsavhighlight"}});
 	exercise.reset();
 
 	//================================
@@ -264,7 +261,24 @@
 		$('#conversionButton').hide();
 	};
 
-  	$('#conversionButton').click(conversionMode);
-  	$('#movenodesbutton').click(moveNodesMode);
-  	$('#removenodesbutton').click(removeNodesMode);
+	function modelAnswer (modeljsav) {
+		// bug: all of the edges seem to be shifted a screen to the right
+		var graph = convertToDFA(modeljsav, g1, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas'), exercise: exercise});
+		graph.layout();
+		// temp (should check FA equivalence)
+		if (graph.equals(g)) {
+			jsav.umsg("You got it!");
+			alert("Congratulations!");
+			localStorage['toConvert'] = true;
+			localStorage['converted'] = serialize(g);
+			window.open('../martin tamayo/Finite Accepter/FAEditor.html');
+		}
+		modeljsav.displayInit();
+		modeljsav.recorded();
+		return graph;		
+	};
+
+	$('#conversionButton').click(conversionMode);
+	$('#movenodesbutton').click(moveNodesMode);
+	$('#removenodesbutton').click(removeNodesMode);
 }(jQuery));
