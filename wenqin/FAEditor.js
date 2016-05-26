@@ -865,7 +865,7 @@
 	var convertToDFA = function() {
 		localStorage['convertNFA'] = true;
 		localStorage['toConvert'] = serialize(g);
-		window.open("../../shkim/conversionExercise.html");
+		window.open("./conversionExercise.html");
 	};
 
 	// Function to convert a complete DFA to a minimum-state DFA.

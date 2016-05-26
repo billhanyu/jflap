@@ -21,9 +21,11 @@
  	if (localStorage['convertNFA'] === "true") {
  		localStorage['convertNFA'] = false;
  		var data = localStorage['toConvert'];
- 		return deserialize(data);
- 	}
-	loadXML();
+ 		referenceGraph = deserialize(data);
+		$("#questionTitle").hide();
+ 	} else {
+		loadXML();
+	}
  };
 	
  function initQuestionLinks() {
@@ -267,7 +269,7 @@
 		 alert("Congratulations!");
 		 localStorage['toConvert'] = true;
 		 localStorage['converted'] = serialize(studentGraph);
-		 window.open('../martin tamayo/Finite Accepter/FAEditor.html');
+		 window.open('./FAEditor.html');
 	 }
 	 modeljsav.displayInit();
 	 modeljsav.recorded();
