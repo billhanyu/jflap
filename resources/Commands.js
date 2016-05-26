@@ -109,6 +109,8 @@ var hideRMenu = function() {
 };
 
 var toggleInitial = function(g, node) {
+	$("#rmenu").hide();
+	node.unhighlight();
 	if (node.equals(g.initial)) {
 		g.removeInitial(node);
 	}
@@ -119,7 +121,6 @@ var toggleInitial = function(g, node) {
 			g.makeInitial(node);
 		}
 	}
-	$("#rmenu").hide();
 };
 
 var toggleFinal = function(g, node) {
@@ -130,6 +131,7 @@ var toggleFinal = function(g, node) {
 		node.addClass("final");
 	}
 	$("#rmenu").hide();
+	node.unhighlight();
 };
 
 var changeLabel = function(node) {
@@ -140,27 +142,36 @@ var changeLabel = function(node) {
 	}
 	node.stateLabel(nodeLabel);
 	node.stateLabelPositionUpdate();
+	node.unhighlight();
+}
+
+var clearLabel = function(node) {
+	$("#rmenu").hide();
+	node.unhighlight();
+	node.stateLabel("");
 }
 
 var displayRightClickMenu = function(g, selected, e) {
 	//find faState object with jQuery selected object
 	var node = g.getNodeWithValue(selected.attr('data-value'));
+	node.highlight();
+
 	e.preventDefault();
 	//make menu appear where mouse clicks
 	$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
-	//$("#rmenu").offset({top: selected.offset().top + e.offsetY, left: selected.offset().left + e.offsetX});
+
 	$("#rmenu").show();
 	if (node.equals(g.initial)) {
-		$("#makeInitial").html("&#x2713; Toggle Initial");
+		$("#makeInitial").html("&#x2713;Initial");
 	}
 	else {
-		$("#makeInitial").html("ToggleInitial");
+		$("#makeInitial").html("Initial");
 	}
 	if (node.hasClass("final")) {
-		$("#makeFinal").html("&#x2713; Toggle Final");
+		$("#makeFinal").html("&#x2713;Final");
 	}
 	else {
-		$("#makeFinal").html("Toggle Final");
+		$("#makeFinal").html("Final");
 	}
 	//off and on to avoid binding event more than once
 	$("#makeInitial").off('click').click(function() {
@@ -171,5 +182,8 @@ var displayRightClickMenu = function(g, selected, e) {
 	});
 	$("#changeLabel").off('click').click(function() {
 			changeLabel(node);
+	});
+	$("#clearLabel").off('click').click(function() {
+			clearLabel(node);
 	});
 };
