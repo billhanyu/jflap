@@ -8109,6 +8109,7 @@ if (typeof Raphael !== "undefined") { // only execute if Raphael is loaded
                               }
                              },
                             this.options.modelDialog); // options passed for the model answer window
+
     // add a class to "hide" the dialog when preparing it
     if (modelOpts.dialogClass) {
       modelOpts.dialogClass += " jsavmodelpreparing";

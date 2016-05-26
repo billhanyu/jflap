@@ -2,7 +2,7 @@
 var executeAddNode = function(graph, top, left){
 	var newNode = graph.addNode();
 	var offsetTop = top - newNode.element.height()/2.0,
-		offsetLeft = left - newNode.element.width()/2.0;
+			offsetLeft = left - newNode.element.width()/2.0;
 	$(newNode.element).offset({top: offsetTop, left: offsetLeft});
 	// Node position is centered on the given top, left coordinates.
 	return newNode;
@@ -129,3 +129,61 @@ var executeEditEdge = function(graph, edge_label, weight){
 	graph.layout({layout: "manual"});
 	// Updating layout is necessary so that the new label is positioned appropriately on the edge.
 };
+
+var hideRMenu = function() {
+	$("#rmenu").hide();
+};
+
+var toggleInitial = function(g, node) {
+	if (node.equals(g.initial)) {
+		g.removeInitial(node);
+	}
+	else {
+		if (g.initial) {
+			alert("There can only be one intial state!");
+		} else {
+			g.makeInitial(node);
+		}
+	}
+	$("#rmenu").hide();
+};
+
+var toggleFinal = function(g, node) {
+	if (node.hasClass("final")) {
+		node.removeClass("final");
+	}
+	else {
+		node.addClass("final");
+	}
+	$("#rmenu").hide();
+};
+
+var displayRightClickMenu = function(g, selected, e) {
+	//find faState object with jQuery selected object
+	var node = g.getNodeWithValue(selected.attr('data-value'));
+	e.preventDefault();
+	//make menu appear where mouse clicks
+	$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
+	//$("#rmenu").offset({top: selected.offset().top + e.offsetY, left: selected.offset().left + e.offsetX});
+	$("#rmenu").show();
+	if (node.equals(g.initial)) {
+		$("#makeInitial").html("&#x2713; Toggle Initial");
+	}
+	else {
+		$("#makeInitial").html("ToggleInitial");
+	}
+	if (node.hasClass("final")) {
+		$("#makeFinal").html("&#x2713; Toggle Final");
+	}
+	else {
+		$("#makeFinal").html("Toggle Final");
+	}
+	//off and on to avoid binding event more than once
+	$("#makeInitial").off('click').click(function() {
+			toggleInitial(g, node);
+			});
+	$("#makeFinal").off('click').click(function() {
+			toggleFinal(g, node);
+			});
+};
+
