@@ -659,58 +659,6 @@
 		resetUndoButtons();
 	};
 
-	// function to serialize the current graph to xml format.
-	var serializegraphtoxml = function (graph) {
-		var text = '<?xml version="1.0" encoding="utf-8"?>';
-	    text = text + "<structure>";
-	    text = text + "<type>fa</type>"
-	    text = text + "<automaton>"
-	    var nodes = graph.nodes();
-	    // iterate over the nodes and add them all to the serialization.
-	    for (var next = nodes.next(); next; next = nodes.next()) {
-	    	var left = next.position().left;
-		    var top = next.position().top;
-		    var i = next.hasclass("start");
-		    var f = next.hasclass("final");
-		    var label = next.statelabel();
-		    text = text + '<state id="' + next.value().substring(1) + '" name="' + next.value() + '">';
-		    text = text + '<x>' + left + '</x>';
-		    text = text + '<y>' + top + '</y>';
-		    if (label) {
-		    	text = text + '<label>' + label + '</label>';
-		    }
-		    if (i) {
-		    	text = text + '<initial/>';
-		    }
-		    if (f) {
-		    	text = text + '<final/>';
-		    }
-	    	text = text + '</state>';
-	    }
-	    var edges = graph.edges();
-	    // now iterate over the edges and do the same with them.
-	    for (var next = edges.next(); next; next = edges.next()) {
-	    	var fromnode = next.start().value().substring(1);
-	    	var tonode = next.end().value().substring(1);
-	    	var w = next.weight().split('<br>');
-	    	for (var i = 0; i < w.length; i++) {
-	    		text = text + '<transition>';
-	    		text = text + '<from>' + fromnode + '</from>';
-	    		text = text + '<to>' + tonode + '</to>';
-	    		if (w[i] === emptystring) {
-	    			text = text + '<read/>';
-	    		}
-	    		else {
-	    			text = text + '<read>' + w[i] + '</read>';
-	    		}
-	    		text = text + '</transition>';
-	    	}
-	    }
-	    text = text + "</automaton></structure>"
-	    // this xml format mimics that used by jflap 7, and is thus compatible with the software.
-	    return text;
-	};
-
 	// Function to save the current graph as an XML file and provide a download link for it.
 	// Triggered by clicking the "Save" button.
 	// Note that there are some browser-specific differences in how this is handled.
