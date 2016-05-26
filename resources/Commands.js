@@ -58,32 +58,6 @@ var executeMoveNode = function(graph, node, top, left){
 	}
 };
 
-// Changes properties of the specified node on the specified graph. Used only by Finite Automaton Editor.
-var executeEditFANode = function(graph, node, initialState, finalState, nodeLabel){
-	if (initialState) {
-		// If this node is the initial state, no other node may be the initial state.
-		for (var i = 0; i < graph.nodeCount(); i++) {
-			graph.removeInitial(graph.nodes()[i]);
-		}
-		graph.makeInitial(node);
-	}
-	else {
-		// Remove initial state if not the initial state. This has no effect if it wasn't the initial state to begin with.
-		graph.removeInitial(node);
-	}
-	if (finalState) {
-		// Make final state.
-		node.addClass('final');
-	}
-	else {
-		// Remove final state.
-		node.removeClass('final');
-	}
-	// Add the state label (if applicable) and update its position relative to that of the node.
-	node.stateLabel(nodeLabel);
-	node.stateLabelPositionUpdate();
-};
-
 // Changes properties of the specified node on the specified graph. Used only by Mealy Machine Editor.
 var executeEditMealyNode = function(graph, node, initialState, nodeLabel){
 	if (initialState) {
@@ -158,6 +132,16 @@ var toggleFinal = function(g, node) {
 	$("#rmenu").hide();
 };
 
+var changeLabel = function(node) {
+	$("#rmenu").hide();
+	var nodeLabel = prompt("How do you want to label it?");
+	if (!nodeLabel) {
+		nodeLabel = "";
+	}
+	node.stateLabel(nodeLabel);
+	node.stateLabelPositionUpdate();
+}
+
 var displayRightClickMenu = function(g, selected, e) {
 	//find faState object with jQuery selected object
 	var node = g.getNodeWithValue(selected.attr('data-value'));
@@ -181,9 +165,11 @@ var displayRightClickMenu = function(g, selected, e) {
 	//off and on to avoid binding event more than once
 	$("#makeInitial").off('click').click(function() {
 			toggleInitial(g, node);
-			});
+	});
 	$("#makeFinal").off('click').click(function() {
 			toggleFinal(g, node);
-			});
+	});
+	$("#changeLabel").off('click').click(function() {
+			changeLabel(node);
+	});
 };
-
