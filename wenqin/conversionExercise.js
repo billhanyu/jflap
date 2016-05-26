@@ -1,11 +1,11 @@
 (function ($) {	
  localStorage["jsav-speed"] = 0; // set default animation speed to max
  var jsav = new JSAV("av"),
- input,						// terminal to expand on
+ expandT,						// terminal to expand on
  selectedNode = null,
  expanded,					// string containing the names of the next states
- g1,							// reference (original NFA)
- g,							// working conversion
+ referenceGraph,							// reference (original NFA)
+ studentGraph,							// working conversion
  alphabet;
 
  var lambda = String.fromCharCode(955),
@@ -35,12 +35,14 @@
 	}
  }
 
+ //called when a question link is clicked
  function toAutomaton() {
 	presentAutomaton(this.getAttribute('id'));
 	currentExercise = this.getAttribute('id');
 	updateQuestionLinks();
  }
 
+ //add a square border to current link
  function updateQuestionLinks() {
 	$('.links').removeClass('currentExercise');
 	$("#" + currentExercise).addClass('currentExercise');
@@ -82,19 +84,19 @@
 
  // initializes the DFA to be created by the user
  function initialize () {
-	 if (g) {
+	 if (studentGraph) {
 		 $('#editable').empty();
 	 }
 	 jsav.umsg("Choose a state to expand:");
-	 g = jsav.ds.fa({width: '45%', height: 440, element: $('#editable')});
-	 var initialNode = g.addNode();
-	 initialNode.stateLabel(lambdaClosure([g1.initial.value()], g1).sort().join());
+	 studentGraph = jsav.ds.fa({width: '45%', height: 440, element: $('#editable')});
+	 var initialNode = studentGraph.addNode();
+	 initialNode.stateLabel(lambdaClosure([referenceGraph.initial.value()], referenceGraph).sort().join());
 	 initialNode.stateLabelPositionUpdate();
-	 g.makeInitial(initialNode);
+	 studentGraph.makeInitial(initialNode);
 
 	 $("#editable").off('click').click(graphClickHandlers);
-	 g.click(nodeClickHandlers);
-	 return g;
+	 studentGraph.click(nodeClickHandlers);
+	 return studentGraph;
  };
 
  // handler for the graph window
@@ -103,7 +105,7 @@
 	 if ($('.jsavgraph').hasClass('moveNodes') && selectedNode != null) {
 		 var nodeX = selectedNode.element.width()/2.0,
 				 nodeY = selectedNode.element.height()/2.0,
-				 edges = g.edges();
+				 edges = studentGraph.edges();
 		 $(selectedNode.element).offset({top: e.pageY - nodeY, left: e.pageX - nodeX});
 		 selectedNode.stateLabelPositionUpdate();
 		 for (var next = edges.next(); next; next = edges.next()) {
@@ -119,18 +121,18 @@
 	 else { 
 		 if ($(".jsavgraph").hasClass("working")) {
 			 // user is allowed to omit 'q' and separate state names with empty space or commas
-			 var input2 = prompt("Which group of NFA states will that go to on " + input + "?");
-			 if (!input2) {
+			 var targetS = prompt("Which group of NFA states will that go to on " + expandT + "?");
+			 if (!targetS) {
 				 return;
 			 }
-			 var inputArr = input2.trim().split(/\s*[,\s]\s*/);
+			 var inputArr = targetS.trim().split(/\s*[,\s]\s*/);
 			 for (var i = 0; i < inputArr.length; i++) {
 				 if (inputArr[i].indexOf("q") === -1) {
 					 inputArr[i] = 'q' + inputArr[i];
 				 } 
 			 }
-			 input2 = inputArr.sort().join();
-			 if (input2 !== expanded) {
+			 targetS = inputArr.sort().join();
+			 if (targetS !== expanded) {
 				 alert("State label is incorrect.");
 				 $('.editButton').show();
 				 $('.jsavgraph').removeClass("working");
@@ -139,21 +141,21 @@
 				 return;
 			 }
 			 // create the new state
-			 var newNode = g.addNode(),
+			 var newNode = studentGraph.addNode(),
 					 nodeX = newNode.element.width()/2.0,
 					 nodeY = newNode.element.height()/2.0;
 			 $(newNode.element).offset({top: e.pageY - nodeY, left: e.pageX - nodeX});
 			 var check = expanded.split(',');
 			 // make the new state final if any of the original states were final
 			 for (var i = 0; i < check.length; i++) {
-				 if (g1.getNodeWithValue(check[i]).hasClass('final')) {
+				 if (referenceGraph.getNodeWithValue(check[i]).hasClass('final')) {
 					 newNode.addClass('final');
 					 break;
 				 }
 			 }
 			 newNode.stateLabel(expanded);
 			 newNode.stateLabelPositionUpdate();
-			 var newEdge = g.addEdge(selectedNode, newNode, {weight: input})
+			 var newEdge = studentGraph.addEdge(selectedNode, newNode, {weight: expandT})
 				 if(newEdge) {newEdge.layout();}
 			 $('.editButton').show();
 			 $('.jsavgraph').removeClass("working");
@@ -173,19 +175,19 @@
 	 } 
 	 // allow user to remove nodes since there is no check to see if a new node already exists
 	 else if ($(".jsavgraph").hasClass("removeNodes")) {
-		 if (!this.equals(g.initial)) {		//dont remove if it's an initial state
-			 g.removeNode(this);
+		 if (!this.equals(studentGraph.initial)) {		//dont remove if it's an initial state
+			 studentGraph.removeNode(this);
 		 }
 		 this.unhighlight();
 	 }
 	 else {
 		 if (!$(".jsavgraph").hasClass("working")) {
 			 selectedNode = this;
-			 input = prompt("Expand on what terminal?");
-			 if (input === null) {
+			 expandT = prompt("Expand on what terminal?");
+			 if (expandT === null) {
 				 this.unhighlight();
 				 return;
-			 } else if (!_.contains(alphabet, input)) {
+			 } else if (!_.contains(alphabet, expandT)) {
 				 alert("That terminal is not in the alphabet!");
 				 this.unhighlight();
 				 return;
@@ -194,8 +196,8 @@
 						 valArr = this.stateLabel().split(','),
 						 finality = false;
 				 for (var j = 0; j < valArr.length; j++) {
-					 next = _.union(next, lambdaClosure(g1.transitionFunction(g1.getNodeWithValue(valArr[j]), 
-									 input), g1));
+					 next = _.union(next, lambdaClosure(referenceGraph.transitionFunction(referenceGraph.getNodeWithValue(valArr[j]), 
+									 expandT), referenceGraph));
 				 }
 				 var node = next.sort().join();
 				 if (!node) {
@@ -212,7 +214,7 @@
 		 } else {
 			 // add transition if this is the toNode
 			 if (this.stateLabel() === expanded) {
-				 var newEdge = g.addEdge(selectedNode, this, {weight: input});
+				 var newEdge = studentGraph.addEdge(selectedNode, this, {weight: expandT});
 				 if (newEdge) { newEdge.layout();}
 			 }
 			 else {
@@ -257,14 +259,14 @@
 
  function modelAnswer (modeljsav) {
 	 // bug: all of the edges seem to be shifted a screen to the right
-	 var graph = convertToDFA(modeljsav, g1, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas'), exercise: exercise});
+	 var graph = convertToDFA(modeljsav, referenceGraph, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas'), exercise: exercise});
 	 graph.layout();
 	 // temp (should check FA equivalence)
-	 if (graph.equals(g)) {
+	 if (graph.equals(studentGraph)) {
 		 jsav.umsg("You got it!");
 		 alert("Congratulations!");
 		 localStorage['toConvert'] = true;
-		 localStorage['converted'] = serialize(g);
+		 localStorage['converted'] = serialize(studentGraph);
 		 window.open('../martin tamayo/Finite Accepter/FAEditor.html');
 	 }
 	 modeljsav.displayInit();
@@ -279,13 +281,13 @@
 		 alert("No automaton with this index");
 		 return;
 	 }
-	 if (g1) {
-		var nodes = g1.nodes();
+	 if (referenceGraph) {
+		var nodes = referenceGraph.nodes();
     for (var next = nodes.next(); next; next = nodes.next()) {
-			g1.removeNode(next);
+			referenceGraph.removeNode(next);
     }
 	 }
-	 	g1 = jsav.ds.fa({width: '45%', height: 440, layout: "automatic", element: $("#reference")});
+	 	referenceGraph = jsav.ds.fa({width: '45%', height: 440, layout: "automatic", element: $("#reference")});
 	 var nodeMap = {};			// map node IDs to nodes
 	 var xmlStates = automaton.getElementsByTagName("state");
 	 xmlStates = _.sortBy(xmlStates, function(x) { return x.id; })
@@ -294,13 +296,13 @@
 	 for (var i = 0; i < xmlStates.length; i++) {
 		 var x = Number(xmlStates[i].getElementsByTagName("x")[0].childNodes[0].nodeValue);
 		 var y = Number(xmlStates[i].getElementsByTagName("y")[0].childNodes[0].nodeValue);
-		 var newNode = g1.addNode({left: x, top: y});
+		 var newNode = referenceGraph.addNode({left: x, top: y});
 		 // Add the various details, including initial/final states and state labels.
 		 var isInitial = xmlStates[i].getElementsByTagName("initial")[0];
 		 var isFinal = xmlStates[i].getElementsByTagName("final")[0];
 		 var isLabel = xmlStates[i].getElementsByTagName("label")[0];
 		 if (isInitial) {
-			 g1.makeInitial(newNode);
+			 referenceGraph.makeInitial(newNode);
 		 }
 		 if (isFinal) {
 			 newNode.addClass('final');
@@ -323,12 +325,12 @@
 		 else {
 			 read = read.nodeValue;
 		 }
-		 var edge = g1.addEdge(nodeMap[from], nodeMap[to], {weight: read});
+		 var edge = referenceGraph.addEdge(nodeMap[from], nodeMap[to], {weight: read});
 		 edge.layout();
 	 }
-	 g1.layout();
-	 g1.updateAlphabet();
-	 alphabet = Object.keys(g1.alphabet).sort();
+	 referenceGraph.layout();
+	 referenceGraph.updateAlphabet();
+	 alphabet = Object.keys(referenceGraph.alphabet).sort();
 	 $("#alphabet").html("" + alphabet);
  };
 
