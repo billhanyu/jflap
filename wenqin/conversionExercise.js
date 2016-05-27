@@ -16,6 +16,10 @@
  initQuestionLinks();
  updateQuestionLinks();
 
+var correctSteps = 0,
+		incorrectSteps = 0,
+		studentScore = 0;
+
  // initializes the reference/original NFA
  function initGraph () {
  	if (localStorage['convertNFA'] === "true") {
@@ -95,7 +99,13 @@
 	 initialNode.stateLabel(lambdaClosure([referenceGraph.initial.value()], referenceGraph).sort().join());
 	 initialNode.stateLabelPositionUpdate();
 	 studentGraph.makeInitial(initialNode);
-
+	
+	 correctSteps = 0;
+	 incorrectSteps = 0;
+	 studentScore = 0;
+	 $("#correctSteps").text(correctSteps);
+	 $("#incorrectSteps").text(incorrectSteps);
+	 $("#studentScore").text(studentScore); 
 	 $("#editable").off('click').click(graphClickHandlers);
 	 studentGraph.click(nodeClickHandlers);
 	 return studentGraph;
@@ -159,6 +169,11 @@
 			 newNode.stateLabelPositionUpdate();
 			 var newEdge = studentGraph.addEdge(selectedNode, newNode, {weight: expandT})
 				 if(newEdge) {newEdge.layout();}
+			 correctSteps++;
+			 studentScore++;
+			 $("#correctSteps").text(correctSteps);
+			 $("#studentScore").text(studentScore);
+
 			 $('.editButton').show();
 			 $('.jsavgraph').removeClass("working");
 			 selectedNode.unhighlight();
@@ -191,6 +206,11 @@
 				 return;
 			 } else if (!_.contains(alphabet, expandT)) {
 				 alert("That terminal is not in the alphabet!");
+				 incorrectSteps++;
+			 	 studentScore -= 0.25;
+			 	 $("#incorrectSteps").text(incorrectSteps);
+			 	 $("#studentScore").text(studentScore);
+
 				 this.unhighlight();
 				 return;
 			 } else {
@@ -204,6 +224,11 @@
 				 var node = next.sort().join();
 				 if (!node) {
 					 alert("There are no paths on that terminal!");
+					 incorrectSteps++;
+				 	 studentScore -= 0.25;
+				 		$("#incorrectSteps").text(incorrectSteps);
+				 		$("#studentScore").text(studentScore);
+
 					 this.unhighlight();
 					 return;
 				 } 
@@ -218,9 +243,13 @@
 			 if (this.stateLabel() === expanded) {
 				 var newEdge = studentGraph.addEdge(selectedNode, this, {weight: expandT});
 				 if (newEdge) { newEdge.layout();}
-			 }
+ 			 }
 			 else {
 				 alert("State label is incorrect.");
+				 incorrectSteps++;
+				 studentScore -= 0.25;
+				 $("#incorrectSteps").text(incorrectSteps);
+				 $("#studentScore").text(studentScore);
 			 }
 			 $('.editButton').show();
 			 $('.jsavgraph').removeClass("working");
@@ -231,7 +260,10 @@
 		 }
 	 }
  };
- var exercise = jsav.exercise(modelAnswer, initialize, {compare: {class: "jsavhighlight"}});
+ var exercise = jsav.exercise(modelAnswer, initialize, {compare: {class: "jsavhighlight"}, modelButtonTitle: "Answer", feedback: "continuous"});
+ //use customized score showing instead of poorly documented jsavscore
+ $(".jsavscore").hide();
+ $(".realScore").show();
  exercise.reset();
 
  //================================
@@ -261,9 +293,8 @@
 
  function modelAnswer (modeljsav) {
 	 // bug: all of the edges seem to be shifted a screen to the right
-	 var graph = convertToDFA(modeljsav, referenceGraph, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas'), exercise: exercise});
+	 var graph = convertToDFA(modeljsav, referenceGraph, {width: '90%', height: 440, layout: 'automatic', element: $('.jsavmodelanswer .jsavcanvas')});
 	 graph.layout();
-	 // temp (should check FA equivalence)
 	 if (graph.equals(studentGraph)) {
 		 jsav.umsg("You got it!");
 		 alert("Congratulations!");
@@ -286,6 +317,7 @@
 	 if (referenceGraph) {
 		var nodes = referenceGraph.nodes();
 		referenceGraph.clear();
+		//because this clear step deletes the html as well
 		$("#graphs").prepend("<div id='reference' class='jsavcanvas'></div>");
 	 }
 	 	referenceGraph = jsav.ds.fa({width: '45%', height: 440, layout: "automatic", element: $("#reference")});
@@ -333,6 +365,7 @@
 	 referenceGraph.updateAlphabet();
 	 alphabet = Object.keys(referenceGraph.alphabet).sort();
 	 $("#alphabet").html("" + alphabet);
+
  };
 
  function loadXML () {
