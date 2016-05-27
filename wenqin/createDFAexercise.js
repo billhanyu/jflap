@@ -5,10 +5,11 @@
 			resultCount = 1;
 
 	function generatejson() {
+		problems = [];
 		$("fieldset").each(problemInfo);
 		var json = JSON.stringify(problems);
 		var downloadData = 'data:text/json;charset=utf8,' + encodeURIComponent(json);
-		$('#download').html('<a href="data:' + downloadData + '" target="_blank" download="dfaExercises.json">Download Exercised JSON File</a>');
+		$('#download').html('<a href="data:' + downloadData + '" target="_blank" download="dfaExercises.json">Download Exercises JSON File</a>');
 	}
 	
 	function problemInfo() {
