@@ -21,7 +21,8 @@
 		$(this).find(".testCase").each(function() {
 			var _case = {},
 					testString = $(this).find("input[name='testString']")[0].value,
-					result = $(this).find("input[checked]")[0].value;
+					resultButtons = $(this).find("input[type='radio']");
+			var result = resultButtons[0].checked ? true : false;
 			_case[testString] = result;
 			problem.testCases.push(_case);
 		});
