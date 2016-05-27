@@ -285,9 +285,8 @@
 	 }
 	 if (referenceGraph) {
 		var nodes = referenceGraph.nodes();
-    for (var next = nodes.next(); next; next = nodes.next()) {
-			referenceGraph.removeNode(next);
-    }
+		referenceGraph.clear();
+		$("#graphs").prepend("<div id='reference' class='jsavcanvas'></div>");
 	 }
 	 	referenceGraph = jsav.ds.fa({width: '45%', height: 440, layout: "automatic", element: $("#reference")});
 	 var nodeMap = {};			// map node IDs to nodes
