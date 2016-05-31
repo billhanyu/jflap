@@ -109,12 +109,14 @@
 
     // Sets click handlers for when the user clicks on the JSAV graph.
 	var graphClickHandler = function(e) {
-		if ($(".jsavgraph").hasClass("addNodes")) {
+		if ($("#rmenu").is(":visible")) {
+			hideRMenu();
+		}
+		else if ($(".jsavgraph").hasClass("addNodes")) {
 			// If in "Add Nodes" mode, save the graph and add a node.
 			saveFAState();
 			executeAddNode(g, e.pageY, e.pageX);
 			$('.jsavnode').off('contextmenu').contextmenu(showMenu);
-			$(".jsavgraph").removeClass("addNodes");
 		} 
 		else if ($('.jsavgraph').hasClass('moveNodes') && selected != null) {
 			// If in "Move Nodes" mode, and a node has already been selected, save the graph and move the node.
@@ -837,6 +839,106 @@
 		var selected = $(this);
 		displayRightClickMenu(g, selected, e);
 	}
+
+var hideRMenu = function() {
+	var nodes = g.nodes();
+	for (var node = nodes.next(); node; node = nodes.next()) {
+		node.unhighlight();
+	}
+	$("#rmenu").hide();
+};
+
+var toggleInitial = function(g, node) {
+	$("#rmenu").hide();
+	node.unhighlight();
+	if (node.equals(g.initial)) {
+		g.removeInitial(node);
+	}
+	else {
+		if (g.initial) {
+			alert("There can only be one intial state!");
+		} else {
+			g.makeInitial(node);
+		}
+	}
+};
+
+var toggleFinal = function(g, node) {
+	if (node.hasClass("final")) {
+		node.removeClass("final");
+	}
+	else {
+		node.addClass("final");
+	}
+	$("#rmenu").hide();
+	node.unhighlight();
+};
+
+var changeLabel = function(node) {
+	$("#rmenu").hide();
+	var nodeLabel = prompt("How do you want to label it?");
+	if (!nodeLabel) {
+		nodeLabel = "";
+	}
+	node.stateLabel(nodeLabel);
+	node.stateLabelPositionUpdate();
+	node.unhighlight();
+}
+
+var clearLabel = function(node) {
+	$("#rmenu").hide();
+	node.unhighlight();
+	node.stateLabel("");
+}
+
+var deleteNode = function(g, node) {
+	$("#rmenu").hide();
+	node.unhighlight();
+	saveFAState();
+	executeDeleteNode(g, node);
+	updateAlphabet();
+	checkAllEdges();
+}
+
+var displayRightClickMenu = function(g, selected, e) {
+	//find faState object with jQuery selected object
+	var node = g.getNodeWithValue(selected.attr('data-value'));
+	node.highlight();
+
+	e.preventDefault();
+	//make menu appear where mouse clicks
+	$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
+
+	$("#rmenu").show();
+	if (node.equals(g.initial)) {
+		$("#makeInitial").html("&#x2713;Initial");
+	}
+	else {
+		$("#makeInitial").html("Initial");
+	}
+	if (node.hasClass("final")) {
+		$("#makeFinal").html("&#x2713;Final");
+	}
+	else {
+		$("#makeFinal").html("Final");
+	}
+	//off and on to avoid binding event more than once
+	$("#makeInitial").off('click').click(function() {
+			toggleInitial(g, node);
+	});
+	$("#makeFinal").off('click').click(function() {
+			toggleFinal(g, node);
+	});
+	$("#deleteNode").off('click').click(function() {
+			deleteNode(g, node);
+	});
+	$("#changeLabel").off('click').click(function() {
+			changeLabel(node);
+	});
+	$("#clearLabel").off('click').click(function() {
+			clearLabel(node);
+	});
+};
 	
 	$("#rmenu").load("./rmenu.html");
 	$("#rmenu").hide();
