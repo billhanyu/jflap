@@ -10,7 +10,8 @@
 		lambda = String.fromCharCode(955), // Instance variable to store the JavaScript representation of lambda.
 		epsilon = String.fromCharCode(949), // Instance variable to store the JavaScript representation of epsilon.
 		emptystring = lambda, // Instance variable to store which empty string notation is being used.
-		willRejectFunction = willReject; // Instance variable to indicate which traversal function to run (shorthand or no).
+		willRejectFunction = willReject, // Instance variable to indicate which traversal function to run (shorthand or no).
+		exerciseIndex;//for creating exercises
 
 	// Initializes a graph with automatic layout. Mainly called by Undo/Redo.
 	var initialize = function(graph) {
@@ -651,19 +652,37 @@
 		collapseEdges();
 	}
 
+	function finishExercise() {
+		localStorage['problem' + exerciseIndex] = serialize(g);
+		localStorage['createExercise'] = false;
+		window.close();
+	}
+
 	// Handler for initializing graph upon loading the web page.
 	// Loads the graph from conversionExercise.html / minimizationTest.html if we are navigating here from those pages.
 	// Otherwise simply initializes a default data set.
 	function onLoadHandler() {
 		var data;
-		if (localStorage['toConvert'] === "true") {
-			data = localStorage['converted'];
-		}
-		else if (localStorage['toMinimize'] === "true") {
-			data = localStorage['minimized'];
+		if (localStorage['createExercise']) {
+			jsav.umsg("When you're done, click 'finish'.");
+			$(".functionality").hide();
+			$(".createExercise").show();
+			exerciseIndex = localStorage['exerciseIndex'];
+			data = localStorage['problem' + exerciseIndex];
+			console.log(data);
 		}
 		else {
-			data = '{"nodes":[{"left":753.90625,"top":171.109375,"i":true,"f":false},{"left":505.890625,"top":342,"i":false,"f":false},{"left":1042,"top":199.40625,"i":false,"f":false},{"left":287.90625,"top":123.625,"i":false,"f":false},{"left":535.921875,"top":0,"i":false,"f":false},{"left":0,"top":89.234375,"i":false,"f":true}],"edges":[{"start":0,"end":1,"weight":"a"},{"start":0,"end":2,"weight":"b"},{"start":1,"end":3,"weight":"a"},{"start":3,"end":4,"weight":"b"},{"start":3,"end":5,"weight":"a"},{"start":4,"end":0,"weight":"a"},{"start":5,"end":3,"weight":"g"}]}';
+			$(".functionality").show();
+			$(".createExercise").hide();
+			if (localStorage['toConvert'] === "true") {
+				data = localStorage['converted'];
+			}
+			else if (localStorage['toMinimize'] === "true") {
+				data = localStorage['minimized'];
+			}
+			else {
+				data = '{"nodes":[{"left":753.90625,"top":171.109375,"i":true,"f":false},{"left":505.890625,"top":342,"i":false,"f":false},{"left":1042,"top":199.40625,"i":false,"f":false},{"left":287.90625,"top":123.625,"i":false,"f":false},{"left":535.921875,"top":0,"i":false,"f":false},{"left":0,"top":89.234375,"i":false,"f":true}],"edges":[{"start":0,"end":1,"weight":"a"},{"start":0,"end":2,"weight":"b"},{"start":1,"end":3,"weight":"a"},{"start":3,"end":4,"weight":"b"},{"start":3,"end":5,"weight":"a"},{"start":4,"end":0,"weight":"a"},{"start":5,"end":3,"weight":"g"}]}';
+			}
 		}
 		initialize(data);
 		resetUndoButtons();
@@ -956,6 +975,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	// Button click handlers.
 	$('#begin').click(displayTraversals);
 	$('#saveButton').click(saveXML);
+	$("#finish").click(finishExercise);
 	$('#loadFile').change(loadXML);
 	$('#undoButton').click(undo);
 	$('#redoButton').click(redo);
@@ -975,6 +995,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#toGrammarButton').click(convertToGrammar);
 	$(document).click(hideRMenu);
 	$(document).keyup(function(e) {
+		if (e.keyCode === 13) console.log(serialize(g)); //for debug
   	if (e.keyCode === 27) cancel();   // esc
 	});
 }(jQuery));

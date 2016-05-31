@@ -8,7 +8,8 @@
 	</head>
 	<body>
 		<h1>DFA Exercise Generator</h1>
-
+		<input type="radio" name="mode" value="noGraph" checked>Expression Only
+		<input type="radio" name="mode" value="yesGraph">With Wrong Graph
 		<form name="exercises" action="" method="get">
 			<div id="problems">
 			<fieldset>
@@ -27,6 +28,7 @@
 				</div>
 
 				<button type="button" id="addTestCase">Add another test case</button>
+				<button type="button" id="editGraph">Edit Graph</button>
 			</fieldset>
 			</div>
 		</form>

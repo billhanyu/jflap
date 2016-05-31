@@ -14,13 +14,14 @@
 
 	var tests, currentExercise = 0, testCases;
 	$.ajax({
-  	url: "./tests.json",
+  	url: "./fixerTests.json",
   	dataType: 'json',
   	async: false,
   	success: function(data) {
 			tests = data;
   	}
 	});
+	console.log(tests);
 	for (i = 0; i < tests.length; i++) {
 		$("#exerciseLinks").append("<a href='#' id='" + i + "' class='links'>" + (i+1) + "</a>");
 	}
@@ -37,7 +38,7 @@
 	var initGraph = function(opts) {
 		// Remove the old graph, parse JSON, and initialize the new graph.
 		$('.jsavgraph').remove();
-		var gg = jQuery.parseJSON(g);
+		var gg = opts.graph ? opts.graph : jQuery.parseJSON(g);
 		g = jsav.ds.fa($.extend({width: '90%', height: 440}, opts));
 		// Add the JSON nodes to the graph.
 		for (var i = 0; i < gg.nodes.length; i++) {
@@ -826,10 +827,12 @@
 	
 	var updateExercise = function(id) {
 		var exercise = tests[id];
+		console.log(exercise);
 		$("#expression").text(exercise["expression"]);
 		$(".links").removeClass("currentExercise");
 		$("#" + currentExercise).addClass("currentExercise");
 		testCases = exercise["testCases"];
+		initGraph({graph: exercise["graph"], layout: "automatic"});
 		$("#testResults").hide();
 		$("#percentage").hide();
 	};
@@ -969,6 +972,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('.links').click(toExercise);
 	$(document).click(hideRMenu);
 	$(document).keyup(function(e) {
+		if (e.keyCode === 13) console.log(serialize(g));
   	if (e.keyCode === 27) cancel();   // esc
 	});
 }(jQuery));

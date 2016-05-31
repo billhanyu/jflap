@@ -1,22 +1,32 @@
 (function ($) {
 	var problems = [],
+			haveGraph = false,
 			testCaseNumbers = {1: 1}, //problem -> number of test cases
 			problemCount = 1,
-			resultCount = 1;
+			resultCount = 1,
+			editGraphButtons = [];
 
 	function generatejson() {
 		problems = [];
 		$("fieldset").each(problemInfo);
 		var json = JSON.stringify(problems);
 		var downloadData = 'data:text/json;charset=utf8,' + encodeURIComponent(json);
-		$('#download').html('<a href="data:' + downloadData + '" target="_blank" download="dfaExercises.json">Download Exercises JSON File</a>');
+		var fileName;
+		if (haveGraph) {
+			fileName = "fixerTests.json";	
+		} else {
+			fileName = "tests.json";
+		}
+		$('#download').html('<a href="data:' + downloadData + '" target="_blank" download="' + fileName + '">Download Exercises JSON File</a>');
 	}
 	
 	function problemInfo() {
 		var problem = {
     	expression: "",
-    	testCases: []
+    	testCases: [],
+			graph: ""
 		};
+		var index = $(this).index();
 		problem.expression = $(this).find("input[name='expression']")[0].value;
 		$(this).find(".testCase").each(function() {
 			var _case = {},
@@ -26,6 +36,7 @@
 			_case[testString] = result;
 			problem.testCases.push(_case);
 		});
+		problem.graph = jQuery.parseJSON(localStorage['problem' + index]);
 		problems.push(problem);
 	}
 
@@ -51,7 +62,14 @@
 		var addCaseButton = $("<button type='button' id='addTestCase'>Add another test case</button>");
 		addCaseButton.click(addCase);
 		$("fieldset[id='" + problemCount + "']").append(addCaseButton);
+		var editGraphButton = $("<button type='button' id='editGraph'>Edit Graph</button>");
+		editGraphButton.click(editGraph);
+		$("fieldset[id='" + problemCount + "']").append(editGraphButton);
 		testCaseNumbers[problemCount] = 1;
+		localStorage['problem' + (problemCount - 1)] = '{"nodes":[], "edges": []}';
+		if (haveGraph) editGraphButton.show();
+		else editGraphButton.hide();
+		editGraphButtons.push(editGraphButton);
 	}
 
 	function addCase() {
@@ -71,8 +89,36 @@
 				"<br>"+
 			"</div>");
 	}
+
+	function editGraph() {
+		var editButton = $(this);
+		var problemIndex = editButton.parent().index();
+		//let FAEditor know we are editing graphs for exercises so we don't need certain functions.
+		localStorage['createExercise'] = true;
+		localStorage['exerciseIndex'] = problemIndex;
+		window.open("./FAEditor.html");
+	}
 		
+	$('input:radio[name="mode"]').change(function() {
+  	if ($(this).val() == 'noGraph') {
+    	$("#editGraph").hide();
+			editGraphButtons.forEach(function(button) {
+				button.hide();
+			});
+			haveGraph = false;
+  	} else {
+    	$("#editGraph").show();
+			editGraphButtons.forEach(function(button) {
+				button.show();
+			});
+			haveGraph = true;
+  	}
+	});
+
 	$("#getjson").click(generatejson);
 	$("#addExercise").click(addProblem);
 	$("#addTestCase").click(addCase);
+	$("#editGraph").click(editGraph);
+	$("#editGraph").hide();
+	localStorage['problem0'] = '{"nodes":[],"edges":[]}';
 }(jQuery));
