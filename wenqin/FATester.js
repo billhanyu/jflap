@@ -939,6 +939,14 @@ var displayRightClickMenu = function(g, selected, e) {
 			clearLabel(node);
 	});
 };
+
+	//cancel all current options
+	function cancel() {
+		$(".jsavgraph").removeClass("addNodes").removeClass("moveNodes").removeClass("editNodes").removeClass("deleteNodes").removeClass("working");
+		jsav.umsg("");
+		$("#mode").html("");
+		collapseEdges();
+	}
 	
 	$("#rmenu").load("./rmenu.html");
 	$("#rmenu").hide();
@@ -951,6 +959,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#loadFile').change(loadXML);
 	$('#undoButton').click(undo);
 	$('#redoButton').click(redo);
+	$("#cancelButton").click(cancel);
 	$('#nodeButton').click(addNodes);
 	$('#edgeButton').click(addEdges);
 	$('#moveButton').click(moveNodes);
@@ -959,4 +968,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#layoutButton').click(layoutGraph);
 	$('.links').click(toExercise);
 	$(document).click(hideRMenu);
+	$(document).keyup(function(e) {
+  	if (e.keyCode === 27) cancel();   // esc
+	});
 }(jQuery));

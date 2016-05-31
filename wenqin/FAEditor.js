@@ -643,6 +643,14 @@
 		}
 	};
 
+	//cancel all current options
+	function cancel() {
+		$(".jsavgraph").removeClass("addNodes").removeClass("moveNodes").removeClass("editNodes").removeClass("deleteNodes").removeClass("working");
+		jsav.umsg("");
+		$("#mode").html("");
+		collapseEdges();
+	}
+
 	// Handler for initializing graph upon loading the web page.
 	// Loads the graph from conversionExercise.html / minimizationTest.html if we are navigating here from those pages.
 	// Otherwise simply initializes a default data set.
@@ -951,6 +959,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#loadFile').change(loadXML);
 	$('#undoButton').click(undo);
 	$('#redoButton').click(redo);
+	$('#cancelButton').click(cancel);
 	$('#nodeButton').click(addNodes);
 	$('#edgeButton').click(addEdges);
 	$('#moveButton').click(moveNodes);
@@ -965,4 +974,7 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#minimizeButton').click(minimizeDFA);
 	$('#toGrammarButton').click(convertToGrammar);
 	$(document).click(hideRMenu);
+	$(document).keyup(function(e) {
+  	if (e.keyCode === 27) cancel();   // esc
+	});
 }(jQuery));
