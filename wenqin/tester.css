@@ -6,6 +6,12 @@ p {
 	font-size: 120%;
 }
 
+p .jsavoutput {
+	margin: 0;
+	-webkit-margin-before: 0;
+	-webkit-margin-after: 0;
+}
+
 a {
 	padding-left: 20px;
 	padding-right: 20px;
