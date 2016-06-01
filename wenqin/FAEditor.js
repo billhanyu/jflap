@@ -11,7 +11,91 @@
 		epsilon = String.fromCharCode(949), // Instance variable to store the JavaScript representation of epsilon.
 		emptystring = lambda, // Instance variable to store which empty string notation is being used.
 		willRejectFunction = willReject, // Instance variable to indicate which traversal function to run (shorthand or no).
-		exerciseIndex;//for creating exercises
+		exerciseIndex,//for creating exercises
+		type;//type of editor: fixer, tester or editor
+
+	// variables used by FATester and FAFixer
+	var tests, currentExercise = 0, testCases;
+
+	// Handler for initializing graph upon loading the web page.
+	// Loads the graph from conversionExercise.html / minimizationTest.html if we are navigating here from those pages.
+	// Otherwise simply initializes a default data set.
+	function onLoadHandler() {
+		// initialize right click menu and hide it for future use
+		$("#rmenu").load("./rmenu.html");
+		$("#rmenu").hide();
+
+		// get what type of editor this html should be
+		type = $("h1").attr('id');
+		switch (type) {
+			case "editor":
+				// for FAEditor, #begin button fires traversal function
+				$('#begin').click(displayTraversals);
+				break;
+			case "fixer":
+				$('#begin').click(testWithExpression);
+				$.ajax({
+  				url: "./fixerTests.json",
+  				dataType: 'json',
+  				async: false,
+  				success: function(data) {
+						tests = data;
+  				}
+				});
+				for (i = 0; i < tests.length; i++) {
+					$("#exerciseLinks").append("<a href='#' id='" + i + "' class='links'>" + (i+1) + "</a>");
+				}
+				$('.links').click(toExercise);
+				$("#testResults").hide();
+				updateExercise(currentExercise);
+				break;
+			case "tester":
+				$('#begin').click(testWithExpression);
+				$.ajax({
+  				url: "./tests.json",
+  				dataType: 'json',
+  				async: false,
+  				success: function(data) {
+						tests = data;
+  				}
+				});
+				for (i = 0; i < tests.length; i++) {
+					$("#exerciseLinks").append("<a href='#' id='" + i + "' class='links'>" + (i+1) + "</a>");
+				}
+				$('.links').click(toExercise);
+				$("#testResults").hide();
+				updateExercise(currentExercise);
+				break;
+			default: break;
+		}
+
+		var data;
+		//this editor is opened from exercise generator
+		if (localStorage['createExercise']) {
+			jsav.umsg("When you're done, click 'finish'.");
+			// exercise generator does not need the functionality buttons
+			$(".functionality").hide();
+			$(".createExercise").show();
+			exerciseIndex = localStorage['exerciseIndex'];
+			data = localStorage['problem' + exerciseIndex];
+		}
+		else {
+			$(".functionality").show();
+			$(".createExercise").hide();
+			if (localStorage['toConvert'] === "true") {
+				data = localStorage['converted'];
+			}
+			else if (localStorage['toMinimize'] === "true") {
+				data = localStorage['minimized'];
+			}
+			else {
+				data = '{"nodes":[{"left":753.90625,"top":171.109375,"i":true,"f":false},{"left":505.890625,"top":342,"i":false,"f":false},{"left":1042,"top":199.40625,"i":false,"f":false},{"left":287.90625,"top":123.625,"i":false,"f":false},{"left":535.921875,"top":0,"i":false,"f":false},{"left":0,"top":89.234375,"i":false,"f":true}],"edges":[{"start":0,"end":1,"weight":"a"},{"start":0,"end":2,"weight":"b"},{"start":1,"end":3,"weight":"a"},{"start":3,"end":4,"weight":"b"},{"start":3,"end":5,"weight":"a"},{"start":4,"end":0,"weight":"a"},{"start":5,"end":3,"weight":"g"}]}';
+			}
+		}
+		initialize(data);
+		resetUndoButtons();
+	};
+
 
 	// Initializes a graph with automatic layout. Mainly called by Undo/Redo.
 	var initialize = function(graph) {
@@ -23,7 +107,7 @@
 	var initGraph = function(opts) {
 		// Remove the old graph, parse JSON, and initialize the new graph.
 		$('.jsavgraph').remove();
-		var gg = jQuery.parseJSON(g);
+		var gg = opts.graph ? opts.graph : jQuery.parseJSON(g);
 		g = jsav.ds.fa($.extend({width: '90%', height: 440}, opts));
 		// Add the JSON nodes to the graph.
 		for (var i = 0; i < gg.nodes.length; i++) {
@@ -571,6 +655,7 @@
 	// If it is disabled, every violating egde (edges with multiple symbol transitions) are highlighted orange.
 	// If any edges are highlighted orange, the "Traverse" button is disabled.
 	function setShorthand (setBoolean) {
+		if (type !== "editor") return;
 		g.setShorthand(setBoolean);
 		if (g.shorthand) {
 			document.getElementById("begin").disabled = false;
@@ -658,35 +743,6 @@
 		window.close();
 	}
 
-	// Handler for initializing graph upon loading the web page.
-	// Loads the graph from conversionExercise.html / minimizationTest.html if we are navigating here from those pages.
-	// Otherwise simply initializes a default data set.
-	function onLoadHandler() {
-		var data;
-		if (localStorage['createExercise']) {
-			jsav.umsg("When you're done, click 'finish'.");
-			$(".functionality").hide();
-			$(".createExercise").show();
-			exerciseIndex = localStorage['exerciseIndex'];
-			data = localStorage['problem' + exerciseIndex];
-			console.log(data);
-		}
-		else {
-			$(".functionality").show();
-			$(".createExercise").hide();
-			if (localStorage['toConvert'] === "true") {
-				data = localStorage['converted'];
-			}
-			else if (localStorage['toMinimize'] === "true") {
-				data = localStorage['minimized'];
-			}
-			else {
-				data = '{"nodes":[{"left":753.90625,"top":171.109375,"i":true,"f":false},{"left":505.890625,"top":342,"i":false,"f":false},{"left":1042,"top":199.40625,"i":false,"f":false},{"left":287.90625,"top":123.625,"i":false,"f":false},{"left":535.921875,"top":0,"i":false,"f":false},{"left":0,"top":89.234375,"i":false,"f":true}],"edges":[{"start":0,"end":1,"weight":"a"},{"start":0,"end":2,"weight":"b"},{"start":1,"end":3,"weight":"a"},{"start":3,"end":4,"weight":"b"},{"start":3,"end":5,"weight":"a"},{"start":4,"end":0,"weight":"a"},{"start":5,"end":3,"weight":"g"}]}';
-			}
-		}
-		initialize(data);
-		resetUndoButtons();
-	};
 
 	// Function to save the current graph as an XML file and provide a download link for it.
 	// Triggered by clicking the "Save" button.
@@ -861,119 +917,180 @@
 		window.open("../../shkim/minimizationTest.html");
 	}
 
-var hideRMenu = function() {
-	var nodes = g.nodes();
-	for (var node = nodes.next(); node; node = nodes.next()) {
+	// function to hide the right click menu
+	// called when mouse clicks on anywhere on the page except the menu
+	var hideRMenu = function() {
+		var nodes = g.nodes();
+		for (var node = nodes.next(); node; node = nodes.next()) {
+			node.unhighlight();
+		}
+		$("#rmenu").hide();
+	};
+
+	// function to toggle the intitial state of a node
+	// appears as a button in the right click menu
+	var toggleInitial = function(g, node) {
+		$("#rmenu").hide();
+		node.unhighlight();
+		if (node.equals(g.initial)) {
+			g.removeInitial(node);
+		}
+		else {
+			if (g.initial) {
+				alert("There can only be one intial state!");
+			} else {
+				g.makeInitial(node);
+			}
+		}
+	};
+
+	// function to toggle the final state of a node
+	// appears as a button in the right click menu
+	var toggleFinal = function(g, node) {
+		if (node.hasClass("final")) {
+			node.removeClass("final");
+		}
+		else {
+			node.addClass("final");
+		}
+		$("#rmenu").hide();
+		node.unhighlight();
+	};
+
+	// function to change the customized label of a node
+	// an option in right click menu
+	var changeLabel = function(node) {
+		$("#rmenu").hide();
+		var nodeLabel = prompt("How do you want to label it?");
+		if (!nodeLabel) {
+			nodeLabel = "";
+		}
+		node.stateLabel(nodeLabel);
+		node.stateLabelPositionUpdate();
 		node.unhighlight();
 	}
-	$("#rmenu").hide();
-};
 
-var toggleInitial = function(g, node) {
-	$("#rmenu").hide();
-	node.unhighlight();
-	if (node.equals(g.initial)) {
-		g.removeInitial(node);
+	// function to clear the customized label
+	// an option in the right click menu
+	var clearLabel = function(node) {
+		$("#rmenu").hide();
+		node.unhighlight();
+		node.stateLabel("");
 	}
-	else {
-		if (g.initial) {
-			alert("There can only be one intial state!");
-		} else {
-			g.makeInitial(node);
+
+	// function to delete the node and its adjacent edges
+	// option in the right click menu
+	var deleteNode = function(g, node) {
+		$("#rmenu").hide();
+		node.unhighlight();
+		saveFAState();
+		executeDeleteNode(g, node);
+		updateAlphabet();
+		checkAllEdges();
+	}
+
+	// displays the right click menu, called when right clicks on a node
+	var displayRightClickMenu = function(g, selected, e) {
+		//find faState object with jQuery selected object
+		var node = g.getNodeWithValue(selected.attr('data-value'));
+		node.highlight();
+
+		e.preventDefault();
+		//make menu appear where mouse clicks
+		$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
+
+		$("#rmenu").show();
+		// add a check mark if the node is already a certain state
+		if (node.equals(g.initial)) {
+			$("#makeInitial").html("&#x2713;Initial");
 		}
-	}
-};
-
-var toggleFinal = function(g, node) {
-	if (node.hasClass("final")) {
-		node.removeClass("final");
-	}
-	else {
-		node.addClass("final");
-	}
-	$("#rmenu").hide();
-	node.unhighlight();
-};
-
-var changeLabel = function(node) {
-	$("#rmenu").hide();
-	var nodeLabel = prompt("How do you want to label it?");
-	if (!nodeLabel) {
-		nodeLabel = "";
-	}
-	node.stateLabel(nodeLabel);
-	node.stateLabelPositionUpdate();
-	node.unhighlight();
-}
-
-var clearLabel = function(node) {
-	$("#rmenu").hide();
-	node.unhighlight();
-	node.stateLabel("");
-}
-
-var deleteNode = function(g, node) {
-	$("#rmenu").hide();
-	node.unhighlight();
-	saveFAState();
-	executeDeleteNode(g, node);
-	updateAlphabet();
-	checkAllEdges();
-}
-
-var displayRightClickMenu = function(g, selected, e) {
-	//find faState object with jQuery selected object
-	var node = g.getNodeWithValue(selected.attr('data-value'));
-	node.highlight();
-
-	e.preventDefault();
-	//make menu appear where mouse clicks
-	$("#rmenu").css({left: selected.offset().left + e.offsetX, top: selected.offset().top + e.offsetY});
-
-	$("#rmenu").show();
-	if (node.equals(g.initial)) {
-		$("#makeInitial").html("&#x2713;Initial");
-	}
-	else {
-		$("#makeInitial").html("Initial");
-	}
-	if (node.hasClass("final")) {
-		$("#makeFinal").html("&#x2713;Final");
-	}
-	else {
-		$("#makeFinal").html("Final");
-	}
-	//off and on to avoid binding event more than once
-	$("#makeInitial").off('click').click(function() {
+		else {
+			$("#makeInitial").html("Initial");
+		}
+		if (node.hasClass("final")) {
+			$("#makeFinal").html("&#x2713;Final");
+		}
+		else {
+			$("#makeFinal").html("Final");
+		}
+		//off and on to avoid binding event more than once
+		$("#makeInitial").off('click').click(function() {
 			toggleInitial(g, node);
-	});
-	$("#makeFinal").off('click').click(function() {
+		});
+		$("#makeFinal").off('click').click(function() {
 			toggleFinal(g, node);
-	});
-	$("#deleteNode").off('click').click(function() {
+		});
+		$("#deleteNode").off('click').click(function() {
 			deleteNode(g, node);
-	});
-	$("#changeLabel").off('click').click(function() {
+		});
+		$("#changeLabel").off('click').click(function() {
 			changeLabel(node);
-	});
-	$("#clearLabel").off('click').click(function() {
+		});
+		$("#clearLabel").off('click').click(function() {
 			clearLabel(node);
-	});
-};
+		});
+	};
 
-	//disPlayRightClickMenu is in Commands.js
+	// shows the right click menu
+	// function exists because displayRightClickMenu requires three parameters
 	var showMenu = function(e) {
 		var selected = $(this);
 		displayRightClickMenu(g, selected, e);
 	}
-	
-	$("#rmenu").load("./rmenu.html");
-	$("#rmenu").hide();
 
+	// used by FAFixer and FATester
+	// test if the student's FA passes the test cases and show the results at the bottom of the page
+	function testWithExpression() {
+		if (g.initial == null) {
+			window.alert("FA traversal requires an initial state.");
+			return;
+		}
+		$("#testResults").empty();
+		$("#testResults").append("<tr><td>Test Case</td><td>Standard Answer</td><td>Result</td></tr>");
+		var count = 0;
+		for (i = 0; i < testCases.length; i++) {
+			var testCase = testCases[i];
+			var input = Object.keys(testCase)[0];
+			var inputResult = willReject(g, input);
+			if (inputResult !== testCase[input]) {
+				$("#testResults").append("<tr><td>" + input + "</td><td>" + (testCase[input] ? "Accept" : "Reject") + "</td><td class='correct'>Correct</td></tr>");
+				count++;
+			}
+			else {
+				$("#testResults").append("<tr><td>" + input + "</td><td>" + (testCase[input] ? "Accept" : "Reject") + "</td><td class='wrong'>Wrong</td></tr>");
+			}
+		}
+		$("#percentage").text("Correct cases: " + count + " / " + testCases.length);
+		$("#percentage").show();
+		$("#testResults").show();
+		window.scrollTo(0,document.body.scrollHeight);
+	};
+
+	// binded with question links at the top of the page
+	// change the problem displayed
+	function toExercise() {
+		currentExercise = this.getAttribute('id');
+		updateExercise(currentExercise);
+	};
+	
+	// the function that really changes the problem displayed
+	// called by toExercise
+	function updateExercise(id) {
+		var exercise = tests[id];
+		$("#expression").text(exercise["expression"]);
+		$(".links").removeClass("currentExercise");
+		$("#" + currentExercise).addClass("currentExercise");
+		testCases = exercise["testCases"];
+		initGraph({graph: exercise["graph"], layout: "automatic"});
+		$("#testResults").hide();
+		$("#percentage").hide();
+	};
+
+	
+	// magic happens here
 	onLoadHandler();
 
 	// Button click handlers.
-	$('#begin').click(displayTraversals);
 	$('#saveButton').click(saveXML);
 	$("#finish").click(finishExercise);
 	$('#loadFile').change(loadXML);
@@ -993,9 +1110,10 @@ var displayRightClickMenu = function(g, selected, e) {
 	$('#toDFAButton').click(convertToDFA);
 	$('#minimizeButton').click(minimizeDFA);
 	$('#toGrammarButton').click(convertToGrammar);
+	$('.links').click(toExercise);	
 	$(document).click(hideRMenu);
 	$(document).keyup(function(e) {
 		if (e.keyCode === 13) console.log(serialize(g)); //for debug
-  	if (e.keyCode === 27) cancel();   // esc
+		if (e.keyCode === 27) cancel();   // esc
 	});
 }(jQuery));
