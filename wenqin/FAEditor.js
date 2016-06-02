@@ -65,7 +65,8 @@
 				$('.links').click(toExercise);
 				$("#testResults").hide();
 				updateExercise(currentExercise);
-				break;
+				resetUndoButtons();
+				return;
 			default: break;
 		}
 
@@ -1081,7 +1082,11 @@
 		$(".links").removeClass("currentExercise");
 		$("#" + currentExercise).addClass("currentExercise");
 		testCases = exercise["testCases"];
-		initGraph({graph: exercise["graph"], layout: "automatic"});
+		if (type == "tester") {
+			initGraph({graph: {"nodes":[], "edges":[]}, layout: "automatic"});
+		} else {
+			initGraph({graph: exercise["graph"], layout: "automatic"});
+		}
 		$("#testResults").hide();
 		$("#percentage").hide();
 	};
