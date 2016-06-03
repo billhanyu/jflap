@@ -1,8 +1,3 @@
-/*
-Grammar demo.
-This is a large file - should be split up into multiple files.
-It may even be better to move the proofs into separate demos.
-*/
 (function ($) {
   var variables = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   var jsav = new JSAV("av");
@@ -27,6 +22,15 @@ It may even be better to move the proofs into separate demos.
       dot = String.fromCharCode(183),
       emptystring = lambda;
   /*
+				$.ajax({
+  				url: "./LLTests.json",
+  				dataType: 'json',
+  				async: false,
+  				success: function(data) {
+						tests = data;
+  				}
+				});
+
   If there is a grammar in local storage, load that grammar.
   This is used to import grammars from certain proofs.
   */
@@ -34,7 +38,7 @@ It may even be better to move the proofs into separate demos.
     // the grammar is saved as a string of a list of strings:
     // turn each production into an array containing the left side, arrow, and right side
     arr = _.map(localStorage['grammar'].split(','), function(x) { 
-      var d = x.split(String.fromCharCode(8594));
+      var d = x.split(arrow);
       d.splice(1, 0, arrow);
       return d;
     });
@@ -51,35 +55,6 @@ It may even be better to move the proofs into separate demos.
     lastRow = 0;
   }
   
-  // Function to lay out a single column width
-  var layoutColumn = function (mat, index) {
-    var maxWidth = 100;     // default cell size
-    for (var i = 0; i < mat._arrays.length; i++) {
-      var cell = mat._arrays[i]._indices[index].element;
-      if ($(cell).width() > maxWidth) {
-        maxWidth = $(cell).width();
-      }
-    }
-    if (maxWidth > 100) {
-      for (var i = 0; i < mat._arrays.length; i++) {
-        var cell = mat._arrays[i]._indices[index].element;
-        $(cell).find('.jsavvalue').width(maxWidth);
-      }
-    }
-  };
-  // Function to fix all table column widths
-  var layoutTable = function (mat, index) {
-    // if column index is given, does layout for that column, otherwise lays out all columns
-    if (typeof index === 'undefined') {
-      for (var i = 0; i < mat._arrays[0]._indices.length; i++) {
-        layoutColumn(mat, i);
-      }
-    } else {
-      layoutColumn(mat, index);
-    }
-    mat.layout();
-  };
-
   // Function to initialize/reinitialize the grammar display
   var init = function () { 
     if (m) {
@@ -173,395 +148,6 @@ It may even be better to move the proofs into separate demos.
     }
   };
 
-  m = init();
-  $('.jsavmatrix').addClass("editMode");
-
-  //=================================
-  // Parsing
-
-  // brute force parsing
-  var bfParse = function () {
-    // get productions (gets a clone of the grammar with the empty rows removed)
-    var productions = _.map(_.filter(arr, function(x) { return x[0]}), function(x) {return x.slice();});
-    if (productions.length === 0) {
-      alert('No grammar.');
-      return;
-    }
-    jsav.umsg('Parsing');
-    var inputString = prompt('Input string');
-    if (inputString === null) {
-      return;
-    }
-    startParse();
-    $('#bfpbutton').show();
-    /*
-    Set the height of the canvas manually:
-    Auto height does not factor in the heights of JSAV elements created with "relativeTo" turned on
-    */
-    $('.jsavcanvas').height(450);
-    var table = {};   // maps each sentential form to the rule that produces it
-    var sententials = [];
-    var next;
-    
-    for (var i = 0; i < productions.length; i++) {
-      m._arrays[i].unhighlight();
-    }
-    // assume the first production is the start variable
-    for (var i = 0; i < productions.length; i++) {
-      if (productions[i][0] === productions[0][0]) {
-        if (productions[i][2] === emptystring) {
-          sententials.push('');
-          table[''] = [i, ''];
-        } else {
-          sententials.push(productions[i][2]);
-          table[productions[i][2]] = [i, ''];
-        }
-      }
-    }
-    var derivers = {};  // variables that derive lambda
-    var counter = 0;
-    // find lambda deriving variables
-    while (removeLambdaHelper(derivers, productions)) {
-      counter++;
-      if (counter > 500) {
-        console.log(counter);
-        break;
-      }
-    };
-    derivers = Object.keys(derivers);
-
-    // parse
-    counter = 0;
-    while (true) {
-      counter++;
-      // ask the user to continue if parsing is taking a long time
-      if (counter > 5000) {
-        console.warn(counter);
-        var confirmed = confirm('This is taking a while. Continue?');
-        if (confirmed) {
-          counter = 0;
-        } else {
-          break;
-        }
-      }
-      next = sententials.pop();
-      // stop parsing if the input string has been derived or if there are no more derivations
-      if (next === inputString) {
-        break;
-      }
-      if (!next) { 
-        break;
-      }
-      var c = null;
-      // go through the sentential form
-      for (var i = 0; i < next.length; i++) {
-        c = next[i];
-        // when a variable has been found, add its derivable sentential forms to be parsed
-        if (variables.indexOf(c) !== -1) {
-          // find productions for the variable
-          _.each(productions, function(x, k) { 
-            if (x[0] === c) {
-              var r = x[2];
-              if (r === emptystring) {
-                r = "";
-              }
-              // new sentential form
-              var s = replaceCharAt(next, i, r);
-              // pruning
-              var keep = true;
-              var prefix = "";
-              var suffix = "";
-              for (var j = 0; j < s.length; j++) {
-                if (inputString.indexOf(s[j]) === -1 && variables.indexOf(s[j]) === -1) {
-                  keep = false;
-                  break;
-                }
-                if (variables.indexOf(s[j]) !== -1) {
-                  break;
-                }
-                prefix = prefix + s[j];
-              }
-              for (var j = s.length - 1; j >= 0; j--) {
-                if (variables.indexOf(s[j]) !== -1) {
-                  break;
-                }
-                suffix = s[j] + suffix;
-              }
-              // prune if prefix/suffix do not match the input string
-              if (prefix !== inputString.substr(0, prefix.length) || 
-                suffix !== inputString.substring(inputString.length - suffix.length)) {
-                keep = false;
-              }
-              // prune if the new sentential form is already in the queue
-              else if (sententials.indexOf(s) !== -1) {
-                keep = false;
-              }
-              /*
-              prune if the number of terminals and non-lambda deriving variables is
-              greater than the length of the input string
-              */
-              else if (_.filter(s, function(x) {
-                  return variables.indexOf(x) === -1 || derivers.indexOf(x) === -1;
-                }).length > inputString.length) {
-                keep = false;
-              }
-              if (keep) {
-                sententials.unshift(s);
-              }
-              // keep track of which production a sentential form is coming from
-              if (!(s in table)) {
-                table[s] = [k, next];
-              }
-            }
-          });
-        }
-      }
-    }
-    console.log(counter);
-    if (next === inputString) {
-      jsav.umsg('"' + inputString + '" accepted');
-      var temp = next;
-      var results = [];   // derivation table
-      counter = 0;
-      // go through the map of sentential forms to productions in order to get the trace
-      do {                // handles the case where inputstring is the emptystring
-        counter++;
-        if (counter > 500) {
-          console.warn(counter);
-          break;
-        }
-        var rp = productions[table[temp][0]].join("");
-        results.push([rp, temp]);
-        temp = table[temp][1];
-      } while (table[temp] && temp);
-      results.reverse();
-      // set up display
-      jsav.label('Grammar', {relativeTo: m, anchor: "center top", myAnchor: "center bottom"});
-      derivationTable = new jsav.ds.matrix(results, {left: "30px", relativeTo: m, anchor: "right top", myAnchor: "left top"});
-      jsav.label('Derivation Table', {relativeTo: derivationTable, anchor: "center top", myAnchor: "center bottom"});
-      parseTree = new jsav.ds.tree({left: "30px", relativeTo: derivationTable, anchor: "right top"});
-      jsav.label('Parse Tree', {left: "" + $('.jsavtree').width() / 2.0 + "px", relativeTo: parseTree, anchor: "center top", myAnchor: "left bottom"});
-      temp = [parseTree.root(productions[0][0])];
-
-      var displayOrder = [];  // order in which to display the nodes of the parse tree
-      // create the parse tree using the derivation table
-      for (var i = 0; i < results.length; i++) {
-        var p = results[i][0];
-        var n;
-        var temp2;
-        var rem;
-        var d = [];
-        // find parent node
-        for (var j = temp.length - 1; j >= 0; j--) {
-          if (temp[j].value() === p.split(arrow)[0]) {
-            temp2 = temp[j];
-            rem = j;
-            break;
-          }
-        }
-        temp.splice(rem, 1);
-        p = p.split(arrow)[1];
-        var temp3 = [];
-        // add children
-        for (var j = 0; j < p.length; j++) {
-          var par = temp2.child(j, p[j]).child(j);
-          if (variables.indexOf(p[j]) !== -1) {
-            temp3.unshift(par);
-          } else {
-            par.addClass('terminal');
-          }
-          d.push(par);
-        }
-        temp = temp.concat(temp3);
-        displayOrder.push(d);
-      }
-
-      layoutTable(derivationTable);
-      parseTree.layout();
-      // hide the whole tree except for the start node and hide the derivation table
-      parseTree.root().hide();
-      parseTree.root().show({recursive: false});
-      for (var i = 0; i < results.length; i++) {
-        derivationTable._arrays[i].hide();
-      }
-      // create slideshow stepping through derivation table and parse tree
-      jsav.displayInit();
-      for (var i = 0; i < results.length; i++) {
-        jsav.step();
-        for (var j = 0; j < m._arrays.length; j++) {
-          m._arrays[j].unhighlight();
-        }
-        var val = derivationTable.value(i, 1);
-        // highlight productions in the grammar while tracing
-        m._arrays[table[val][0]].highlight();
-        derivationTable._arrays[i].show();
-        var temp2 = displayOrder.shift();
-        for (var j = 0; j < temp2.length; j++) {
-          temp2[j].show({recursive: false});
-        }
-      }
-      jsav.recorded();
-    } else {
-      // if string is rejected, automatically return to the editor
-      $('#backbutton').click();
-      jsav.umsg('"' + inputString + '" rejected');
-    }
-  }; 
-  /*
-  Function to check if FIRST / FOLLOW sets are correct (either FIRST sets or FOLLOW sets).
-  Returns a list of the incorrect variables.
-  */
-  var checkTable = function (firsts, follows) {
-    var checker;
-    // arrayStep can be 1 or 2
-    if (arrayStep === 1) {
-      checker = firsts;
-    } else {
-      checker = follows;
-    }
-    var incorrect = [];
-    for (var i = 1; i < ffTable._arrays.length; i++) {
-      var a = ffTable._arrays[i];
-      var fvar = a.value(0);
-      var fset = a.value(arrayStep);
-      var check1 = checker[fvar];
-      var check2 = fset.split(',');
-      var inter = _.intersection(check1, check2);
-      if (inter.length !== check1.length || inter.length !== check2.length) {
-        incorrect.push(fvar);
-      } 
-    } 
-    return incorrect
-  };
-
-  // Function to check if the parse table is correct and transition
-  var checkParseTable = function (parseTableDisplay, parseTable) {
-    $('#firstinput').remove();
-    var incorrect = false;
-    for (var i = 1; i < parseTableDisplay._arrays.length; i++) {
-      var ptr = parseTableDisplay._arrays[i];
-      ptr.unhighlight();
-      for (var j = 1; j < ptr._indices.length; j++) {
-        if (parseTable[i-1][j-1] !== parseTableDisplay.value(i, j)) {
-          parseTableDisplay.highlight(i, j);
-          incorrect = true;
-        }
-      }
-    }
-    // provide option to automatically complete the parse table
-    if (incorrect) {
-      var confirmed = confirm('Highlighted cells are incorrect.\nFix automatically?');
-      if (confirmed) {
-        for (var i = 1; i < parseTableDisplay._arrays.length; i++) {
-          var ptr = parseTableDisplay._arrays[i];
-          ptr.unhighlight();
-          for (var j = 1; j < ptr._indices.length; j++) {
-            parseTableDisplay.value(i, j, parseTable[i-1][j-1]);
-          }
-        }
-        layoutTable(parseTableDisplay);
-      } else {
-        return;
-      }
-    }
-    $('#parsereadybutton').hide();
-    $('#parsebutton').show();
-    jsav.umsg("");
-    $('.jsavarray').off();
-  };
-
-  // click handler for the FIRST/FOLLOW table
-  var firstFollowHandler = function (index) {
-    // ignore if first row (headers)
-    if (index === 0) { return; }
-    var prev = this.value(index, arrayStep);
-    prev = prev.replace(/,/g, "");
-    // create input box
-    $('#firstinput').remove();
-    var createInput = "<input type='text' id='firstinput' value="+prev+">";
-    $('body').append(createInput);
-    var offset = this._arrays[index]._indices[arrayStep].element.offset();
-    var topOffset = offset.top;
-    var leftOffset = offset.left;
-    var w = $(this._arrays[index]._indices[arrayStep].element).width();
-    var fi = $('#firstinput');
-    fi.offset({top: topOffset, left: leftOffset});
-    fi.outerHeight($('.jsavvalue').height());
-    fi.width(w);
-    fi.focus();
-    // finalize changes when enter key is pressed
-    fi.keyup(function(event){
-      if(event.keyCode == 13){
-        var firstInput = $(this).val();
-        firstInput = firstInput.split("");
-        // read ! as lambda
-        for (var i = 0; i < firstInput.length; i++) {
-          if (firstInput[i] === '!') {
-            firstInput[i] = emptystring;
-          }
-        }
-        firstInput = _.uniq(firstInput).join(',');
-        ffTable.value(index, arrayStep, firstInput);
-        layoutTable(ffTable, arrayStep);
-        fi.remove();
-      }
-    });
-  };
-
-  // click handler for the parse table
-  var parseTableHandler = function (index, index2, e) { 
-    // ignore if first row or column   
-    if (index === 0 || index2 === 0) { return; }
-    var self = this;
-    var prev = this.value(index, index2);
-    // create input box
-    $('#firstinput').remove();
-    var createInput = "<input type='text' id='firstinput' value="+prev+">";
-    $('body').append(createInput);
-    var offset = this._arrays[index]._indices[index2].element.offset();
-    var topOffset = offset.top;
-    var leftOffset = offset.left;
-    var fi = $('#firstinput');
-    fi.offset({top: topOffset, left: leftOffset});
-    fi.outerHeight($('.jsavvalue').height());
-    fi.width($(this._arrays[index]._indices[index2].element).width());
-    fi.focus();
-    // finalize changes when enter key is pressed
-    fi.keyup(function(event){
-      if(event.keyCode == 13){
-        var firstInput = $(this).val();
-        firstInput = firstInput.replace(/!/g, emptystring);
-        self.value(index, index2, firstInput);
-        layoutTable(self, index2);
-        fi.remove();
-      }
-    });
-  };
-
-  // Function to transition from editing FIRST sets to editing FOLLOW sets
-  var continueToFollow = function (firsts, follows) {
-    $('#firstinput').remove();
-    var incorrect = checkTable(firsts, follows);
-    // provide option to complete the FIRST sets automatically
-    if (incorrect.length > 0) {
-      var confirmed = confirm('The following sets are incorrect: ' + incorrect + '.\nFix automatically?');
-      if (confirmed) {
-        for (var i = 1; i < ffTable._arrays.length; i++) {
-          var a = ffTable._arrays[i].value(0);
-          ffTable.value(i, 1, firsts[a]);
-        }
-        layoutTable(ffTable);
-      } else {
-        return false;
-      }
-    }
-    $(ffTable.element).off();
-    $('#followbutton').hide();
-    jsav.umsg('Define FOLLOW sets. $ is the end of string character.');
-    arrayStep = 2;
-    ffTable.click(firstFollowHandler);
-    return true;
-  };
 
   // LL(1) parsing
   var llParse = function () {
@@ -2929,6 +2515,202 @@ It may even be better to move the proofs into separate demos.
     reader.readAsText(file);
   };
 
+  // Function to lay out a single column width
+  function layoutColumn (mat, index) {
+    var maxWidth = 100;     // default cell size
+    for (var i = 0; i < mat._arrays.length; i++) {
+      var cell = mat._arrays[i]._indices[index].element;
+      if ($(cell).width() > maxWidth) {
+        maxWidth = $(cell).width();
+      }
+    }
+    if (maxWidth > 100) {
+      for (var i = 0; i < mat._arrays.length; i++) {
+        var cell = mat._arrays[i]._indices[index].element;
+        $(cell).find('.jsavvalue').width(maxWidth);
+      }
+    }
+  };
+  // Function to fix all table column widths
+  function layoutTable (mat, index) {
+    // if column index is given, does layout for that column, otherwise lays out all columns
+    if (typeof index === 'undefined') {
+      for (var i = 0; i < mat._arrays[0]._indices.length; i++) {
+        layoutColumn(mat, i);
+      }
+    } else {
+      layoutColumn(mat, index);
+    }
+    mat.layout();
+  };
+
+	/*
+  Function to check if FIRST / FOLLOW sets are correct (either FIRST sets or FOLLOW sets).
+  Returns a list of the incorrect variables.
+  */
+  function checkTable(firsts, follows) {
+    var checker;
+    // arrayStep can be 1 or 2
+    if (arrayStep === 1) {
+      checker = firsts;
+    } else {
+      checker = follows;
+    }
+    var incorrect = [];
+    for (var i = 1; i < ffTable._arrays.length; i++) {
+      var a = ffTable._arrays[i];
+      var fvar = a.value(0);
+      var fset = a.value(arrayStep);
+      var check1 = checker[fvar];
+      var check2 = fset.split(',');
+      var inter = _.intersection(check1, check2);
+      if (inter.length !== check1.length || inter.length !== check2.length) {
+        incorrect.push(fvar);
+      } 
+    } 
+    return incorrect
+  };
+
+  // Function to check if the parse table is correct and transition
+  function checkParseTable(parseTableDisplay, parseTable) {
+    $('#firstinput').remove();
+    var incorrect = false;
+    for (var i = 1; i < parseTableDisplay._arrays.length; i++) {
+      var ptr = parseTableDisplay._arrays[i];
+      ptr.unhighlight();
+      for (var j = 1; j < ptr._indices.length; j++) {
+        if (parseTable[i-1][j-1] !== parseTableDisplay.value(i, j)) {
+          parseTableDisplay.highlight(i, j);
+          incorrect = true;
+        }
+      }
+    }
+    // provide option to automatically complete the parse table
+    if (incorrect) {
+      var confirmed = confirm('Highlighted cells are incorrect.\nFix automatically?');
+      if (confirmed) {
+        for (var i = 1; i < parseTableDisplay._arrays.length; i++) {
+          var ptr = parseTableDisplay._arrays[i];
+          ptr.unhighlight();
+          for (var j = 1; j < ptr._indices.length; j++) {
+            parseTableDisplay.value(i, j, parseTable[i-1][j-1]);
+          }
+        }
+        layoutTable(parseTableDisplay);
+      } else {
+        return;
+      }
+    }
+    $('#parsereadybutton').hide();
+    $('#parsebutton').show();
+    jsav.umsg("");
+    $('.jsavarray').off();
+  };
+
+  // click handler for the FIRST/FOLLOW table
+  function firstFollowHandler(index) {
+    // ignore if first row (headers)
+    if (index === 0) { return; }
+    var prev = this.value(index, arrayStep);
+    prev = prev.replace(/,/g, "");
+    // create input box
+    $('#firstinput').remove();
+    var createInput = "<input type='text' id='firstinput' value="+prev+">";
+    $('body').append(createInput);
+    var offset = this._arrays[index]._indices[arrayStep].element.offset();
+    var topOffset = offset.top;
+    var leftOffset = offset.left;
+    var w = $(this._arrays[index]._indices[arrayStep].element).width();
+    var fi = $('#firstinput');
+    fi.offset({top: topOffset, left: leftOffset});
+    fi.outerHeight($('.jsavvalue').height());
+    fi.width(w);
+    fi.focus();
+    // finalize changes when enter key is pressed
+    fi.keyup(function(event){
+      if(event.keyCode == 13){
+        var firstInput = $(this).val();
+        firstInput = firstInput.split("");
+        // read ! as lambda
+        for (var i = 0; i < firstInput.length; i++) {
+          if (firstInput[i] === '!') {
+            firstInput[i] = emptystring;
+          }
+        }
+        firstInput = _.uniq(firstInput).join(',');
+        ffTable.value(index, arrayStep, firstInput);
+        layoutTable(ffTable, arrayStep);
+        fi.remove();
+      }
+    });
+  };
+
+  // click handler for the parse table
+  function parseTableHandler (index, index2, e) { 
+    // ignore if first row or column   
+    if (index === 0 || index2 === 0) { return; }
+    var self = this;
+    var prev = this.value(index, index2);
+    // create input box
+    $('#firstinput').remove();
+    var createInput = "<input type='text' id='firstinput' value="+prev+">";
+    $('body').append(createInput);
+    var offset = this._arrays[index]._indices[index2].element.offset();
+    var topOffset = offset.top;
+    var leftOffset = offset.left;
+    var fi = $('#firstinput');
+    fi.offset({top: topOffset, left: leftOffset});
+    fi.outerHeight($('.jsavvalue').height());
+    fi.width($(this._arrays[index]._indices[index2].element).width());
+    fi.focus();
+    // finalize changes when enter key is pressed
+    fi.keyup(function(event){
+      if(event.keyCode == 13){
+        var firstInput = $(this).val();
+        firstInput = firstInput.replace(/!/g, emptystring);
+        self.value(index, index2, firstInput);
+        layoutTable(self, index2);
+        fi.remove();
+      }
+    });
+  };
+
+  // Function to transition from editing FIRST sets to editing FOLLOW sets
+  function continueToFollow (firsts, follows) {
+    $('#firstinput').remove();
+    var incorrect = checkTable(firsts, follows);
+    // provide option to complete the FIRST sets automatically
+    if (incorrect.length > 0) {
+      var confirmed = confirm('The following sets are incorrect: ' + incorrect + '.\nFix automatically?');
+      if (confirmed) {
+        for (var i = 1; i < ffTable._arrays.length; i++) {
+          var a = ffTable._arrays[i].value(0);
+          ffTable.value(i, 1, firsts[a]);
+        }
+        layoutTable(ffTable);
+      } else {
+        return false;
+      }
+    }
+    $(ffTable.element).off();
+    $('#followbutton').hide();
+    jsav.umsg('Define FOLLOW sets. $ is the end of string character.');
+    arrayStep = 2;
+    ffTable.click(firstFollowHandler);
+    return true;
+  };
+
+	function bruteForceParse () {
+		var serializedGrammar = "";
+		for (var i = 0; i < arr.length && arr[i][0] !== ""; i++) {
+			serializedGrammar = serializedGrammar + arr[i][0] + arrow + arr[i][2] + ",";
+		}	
+		serializedGrammar = serializedGrammar.substring(0, serializedGrammar.length - 1);
+		localStorage["grammar"] = serializedGrammar;
+		console.log(localStorage["grammar"]);
+		window.open("./BFParse.html");
+	}
+
   //=================================
   // Buttons for editing the SLR DFA
   $('#movebutton').click(function() {
@@ -2965,7 +2747,7 @@ It may even be better to move the proofs into separate demos.
     if (tGrammar) { tGrammar.clear();}
     if (backup) {
       arr = _.map(backup.split(','), function(x) { 
-        var d = x.split(String.fromCharCode(8594));
+        var d = x.split(arrow);
         d.splice(1, 0, arrow);
         return d;
       });
@@ -2996,7 +2778,7 @@ It may even be better to move the proofs into separate demos.
   });
   $('#editbutton').click(editMode);
   $('#deletebutton').click(deleteMode);
-  $('#bfpbutton').click(bfParse);
+  $('#bfpbutton').click(bruteForceParse);
   $('#llbutton').click(llParse);
   $('#slrbutton').click(slrParse);
   $('#transformbutton').click(transformGrammar);
@@ -3004,4 +2786,15 @@ It may even be better to move the proofs into separate demos.
   $('#savefile').click(saveFile);
   $('#convertRLGbutton').click(convertToFA);
   $('#convertCFGbutton').click(convertToPDA);
+
+	function onLoadHandler() {
+		var type = $("h1").attr('id');
+		if (type == "bf") {
+		}
+		m = init();
+  	$('.jsavmatrix').addClass("editMode");
+	}
+
+	onLoadHandler();
+
 }(jQuery));
